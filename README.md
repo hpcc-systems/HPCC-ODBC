@@ -1,4 +1,4 @@
 HPCC-ODBC
-=========
+===========
 
-HPCC ODBC Driver
+HPCC-ODBC Connector
