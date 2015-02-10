@@ -192,6 +192,7 @@ private:
     void        convertHPCCType(const char * hpccType, CColumn * pColumn);
     void        getDeployedQueries();//populates m_querySetMap
     void        killResultsDatasets()   { m_ResultsDatasets.kill(); }
+    bool        checkForTopLevelErrors(const IMultiException & _exc, StringBuffer & _sbErrors);
     bool        checkForErrors(const IMultiException & _exc, IConstECLWorkunit & _wu, StringBuffer & _sbErrors);
 
 public:

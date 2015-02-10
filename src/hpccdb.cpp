@@ -87,12 +87,26 @@ bool HPCCdb::getHPCCDBSystemInfo()
         resp.setown(m_clientWs_sql->GetDBSystemInfo(req));//calls ws_sql
         tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:complete\n", ());
     }
+    catch (IException* e)
+    {
+        StringBuffer sb;
+        e->errorMessage(sb);
+
+        hpccErrors.setf("HPCC_Conn:Error calling ws_sql : '%s'\n", (sb.str()));
+        tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "%s", (sb.str()));
+        return false;
+    }
     catch (...)
     {
-        hpccErrors.clear().append("Exception thrown calling ws_sql");
+        hpccErrors.setf("Exception thrown calling ws_sql");
         tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Error calling ws_sql\n", ());
         return false;
     }
+
+    StringBuffer sbErrors;
+    if (checkForTopLevelErrors(resp->getExceptions(), sbErrors))
+        return false;
+
     m_FullHPCCVersion.set(resp->getFullVersion());
     tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:Connected to '%s'\n", (m_FullHPCCVersion.get()));
 
@@ -122,12 +136,27 @@ void HPCCdb::getDeployedQueries()
             resp.setown(m_clientWs_sql->GetDBMetaData(req));//calls ws_sql
             tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:complete\n", ());
         }
+
+        catch (IException* e)
+        {
+            StringBuffer sb;
+            e->errorMessage(sb);
+
+            hpccErrors.setf("HPCC_Conn:Error calling ws_sql : '%s'\n", (sb.str()));
+            tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "%s", (sb.str()));
+            return;
+        }
+
         catch (...)
         {
-            hpccErrors.clear().append("Exception thrown calling ws_sql");
+            hpccErrors.setf("Exception thrown calling ws_sql");
             tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Error calling ws_sql\n", ());
             return;
         }
+
+        StringBuffer sbErrors;
+        if (checkForTopLevelErrors(resp->getExceptions(), sbErrors))
+            return;
 
         //---------------------------
         //Process each QuerySet
@@ -244,12 +273,27 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, CTable **_table)
             resp.setown(m_clientWs_sql->GetDBMetaData(req));//calls ws_sql
             tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:complete\n", ());
         }
+
+        catch (IException* e)
+        {
+            StringBuffer sb;
+            e->errorMessage(sb);
+
+            hpccErrors.setf("HPCC_Conn:Error calling ws_sql : '%s'\n", (sb.str()));
+            tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "%s", (sb.str()));
+            return false;
+        }
+
         catch (...)
         {
-            hpccErrors.clear().append("Exception thrown calling ws_sql");
+            hpccErrors.setf("Exception thrown calling ws_sql");
             tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Error calling ws_sql\n", ());
             return false;
         }
+
+        StringBuffer sbErrors;
+        if (checkForTopLevelErrors(resp->getExceptions(), sbErrors))
+            return false;
 
         //--------------------
         //Tables
@@ -294,24 +338,14 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, CTable **_table)
 
 
 /************************************************************************
-Function:       HPCCdb::checkForErrors
+Function:       HPCCdb::checkForTopLevelErrors
 Description:
 Return:         true :errors
                 false: no errors
 ************************************************************************/
-bool HPCCdb::checkForErrors(const IMultiException & _exc, IConstECLWorkunit & _wu, StringBuffer & _sbErrors)
+bool HPCCdb::checkForTopLevelErrors(const IMultiException & _exc, StringBuffer & _sbErrors)
 {
-    //Check for workunit errors
-    IArrayOf<IConstECLException> &exceptions = _wu.getExceptions();
-    ForEachItemIn(i, exceptions)
-    {
-        IConstECLException &e = exceptions.item(i);
-        _sbErrors.appendf("\nHPCC_Conn: Workunit exception : %s - %s\n", _wu.getWuid(), e.getMessage());
-        tm_trace(driver_tm_Hdle, UL_TM_ERRORS, (char*)_sbErrors.str(),());
-    }
-    if (!exceptions.empty())
-        return true;//errors
-
+    //Check for top level exceptions
     if (_exc.ordinality() > 0)
     {
         //log exceptions
@@ -324,6 +358,31 @@ bool HPCCdb::checkForErrors(const IMultiException & _exc, IConstECLWorkunit & _w
         tm_trace(driver_tm_Hdle, UL_TM_ERRORS, (char*)_sbErrors.str(),());
         return true;//errors
     }
+    return false;//no errors
+}
+
+/************************************************************************
+Function:       HPCCdb::checkForErrors
+Description:
+Return:         true :errors
+                false: no errors
+************************************************************************/
+bool HPCCdb::checkForErrors(const IMultiException & _exc, IConstECLWorkunit & _wu, StringBuffer & _sbErrors)
+{
+    if (checkForTopLevelErrors(_exc, _sbErrors))
+        return true;//errors
+
+    //Check for workunit errors
+    IArrayOf<IConstECLException> &exceptions = _wu.getExceptions();
+    ForEachItemIn(i, exceptions)
+    {
+        IConstECLException &e = exceptions.item(i);
+        _sbErrors.appendf("\nHPCC_Conn: Workunit exception : %s - %s\n", _wu.getWuid(), e.getMessage());
+        tm_trace(driver_tm_Hdle, UL_TM_ERRORS, (char*)_sbErrors.str(),());
+    }
+    if (!exceptions.empty())
+        return true;//errors
+
     return false;//no errors
 }
 
@@ -359,6 +418,17 @@ bool HPCCdb::executeSQL(const char * sql, const char * targetQuerySet, StringBuf
         resp.setown(m_clientWs_sql->ExecuteSQL(req));//calls ws_sql
         tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:complete\n", ());
     }
+
+    catch (IException* e)
+    {
+        StringBuffer sb;
+        e->errorMessage(sb);
+
+        hpccErrors.setf("HPCC_Conn:Error calling ws_sql : '%s'\n", (sb.str()));
+        tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "%s", (sb.str()));
+        return false;
+    }
+
     catch (...)
     {
         sbErrors.append("Exception thrown calling ws_sql");
@@ -433,6 +503,17 @@ bool HPCCdb::getMoreResults(const char * _wuid, const char * _dsName, aindex_t _
         resp.setown(m_clientWs_sql->GetResults(req));//calls ws_sql
         tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:complete\n", ());
     }
+
+    catch (IException* e)
+    {
+        StringBuffer sb;
+        e->errorMessage(sb);
+
+        hpccErrors.setf("HPCC_Conn:Error calling ws_sql : '%s'\n", (sb.str()));
+        tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "%s", (sb.str()));
+        return false;
+    }
+
     catch (...)
     {
         _sbErrors.append("Exception thrown calling ws_sql");
