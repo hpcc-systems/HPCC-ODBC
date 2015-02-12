@@ -455,15 +455,18 @@ int             OAIP_execute(IP_HDBC hdbc,
     pStmtDA->iType = iStmtType;
 
     /* get the table information */
-    CTable *pTable = NULL;
+    IArrayOf<CTable> _tables;
     dam_describeTable(pStmtDA->dam_hstmt, NULL, NULL, pStmtDA->sTableName, NULL, (char*)NULL);
-    pConnDA->pHPCCdb->getTableSchema(pStmtDA->sTableName, &pTable);
+    pConnDA->pHPCCdb->getTableSchema(pStmtDA->sTableName, _tables);
     pConnDA->pHPCCdb->clearOutputColumnDescriptors();
-    if (!pTable)
+    if (_tables.empty())
     {
         tm_trace(hpcc_tm_Handle, UL_TM_MINOR_EV, "HPCC_Conn:OAIP_execute Table '%s' not found", (pStmtDA->sTableName));
         return DAM_FAILURE;
     }
+    assertex(!_tables.empty());
+    CTable &table = _tables.item(0);
+
     //-----------------------------------------------------------
     //The following calls retrieve the output table column format.
     //Look up these columns in our hpcc CColumn cache, and save them
@@ -484,7 +487,7 @@ int             OAIP_execute(IP_HDBC hdbc,
                         &iXOType,   //int *piXOType,
                         &iColType); //int *piColType);
 
-        CColumn *pCol = pTable->queryColumn(iColNum);//find this hpcc CColumn descriptor
+        CColumn *pCol = table.queryColumn(iColNum);//find this hpcc CColumn descriptor
         if (!pCol)
         {
             tm_trace(hpcc_tm_Handle, UL_TM_MINOR_EV, "HPCC_Conn:OAIP_execute Column '%s' not found", (sColName));
@@ -942,10 +945,13 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                 tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV,"HPCC_Conn:Dynamic Schema for table :(%s.%s.%s) is being requested.  Table Schema requested with %s\n",
                     (pSearchTableObj->table_qualifier, pSearchTableObj->table_owner, pSearchTableObj->table_name,
                     dam_isSearchPatternObject(pSearchObj) ? "Pattern SearchObject" : "Non-Pattern SearchObject"));
-                CTable * table;
-                if (pConnDA->pHPCCdb->getTableSchema(pSearchTableObj->table_name, &table))
+
+                IArrayOf<CTable> _tables;
+                if (pConnDA->pHPCCdb->getTableSchema(pSearchTableObj->table_name, _tables))
                 {
-                    if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, HPCC_USER_NAME, (char*)table->queryName()))
+                    assertex(!_tables.empty());
+                    CTable &table = _tables.item(0);
+                    if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, HPCC_USER_NAME, (char*)table.queryName()))
                     {
                         rc = dam_add_damobj_table(
                             pMemTree,                   //XM_Tree *     pMemTree,
@@ -974,7 +980,31 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
             else
             {
                 tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV,"HPCC_Conn:Dynamic Schema for all tables is being requested\n",());
-                return DAM_FAILURE;
+                IArrayOf<CTable> _tables;
+                if (pConnDA->pHPCCdb->getTableSchema(NULL, _tables))
+                {
+                    assertex(!_tables.empty());
+                    ForEachItemIn(i, _tables)
+                    {
+                        CTable &table = _tables.item(i);
+                        rc = dam_add_damobj_table(
+                            pMemTree,                  //XM_Tree *     pMemTree,
+                            pList,                     //DAM_OBJ_LIST  pList,
+                            pSearchObj,                //DAM_OBJ       pSearchObj,
+                            HPCC_QUALIFIER_NAME,       //char   *      table_qualifier,
+                            HPCC_USER_NAME,            //char   *      table_owner,
+                            (char*)table.queryName(),  //char   *      table_name,
+                            "TABLE",                   //char   *      table_type, (TABLE == managed by IP)
+                            NULL,                      //char   *      table_path,
+                            NULL,                      //char   *      table_userdata
+                            NULL,                      //char   *      function_support, IP_TABLE_SUPPORT_SELECT
+                            NULL);                     //char   *      remarks
+                        if (rc != DAM_SUCCESS)
+                        {
+                            return DAM_FAILURE;
+                        }
+                    }
+                }
             }
         }
         break;
@@ -991,14 +1021,16 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                     (pSearchColumnObj->table_qualifier,pSearchColumnObj->table_owner,pSearchColumnObj->table_name,
                     dam_isSearchPatternObject(pSearchObj) ? "Pattern SearchObject" : "Non-Pattern SearchObject"));
 
-                CTable * table;
-                if (pConnDA->pHPCCdb->getTableSchema(pSearchColumnObj->table_name, &table))//find specified table
+                IArrayOf<CTable> _tables;
+                if (pConnDA->pHPCCdb->getTableSchema(pSearchColumnObj->table_name, _tables))//find specified table
                 {
-                    aindex_t numCols = table->queryNumColumns();
+                    assertex(!_tables.empty());
+                    CTable &table = _tables.item(0);
+                    aindex_t numCols = table.queryNumColumns();
                     for (aindex_t colIdx = 0; colIdx < numCols; colIdx++)//iterate over all columns in specified table
                     {
-                        CColumn *col = table->queryColumn(colIdx);
-                        if (hpcc_is_matching_column(pSearchColumnObj, HPCC_QUALIFIER_NAME, HPCC_USER_NAME, (char*)table->queryName()))
+                        CColumn *col = table.queryColumn(colIdx);
+                        if (hpcc_is_matching_column(pSearchColumnObj, HPCC_QUALIFIER_NAME, HPCC_USER_NAME, (char*)table.queryName()))
                         {
                             populateOAtypes(col);//map HPCC data types to OpenAccess dam_add_damobj_column types
                             rc = dam_add_damobj_column(
@@ -1007,7 +1039,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                     pSearchObj,             //DAM_OBJ      pSearchObj,
                                     HPCC_QUALIFIER_NAME,    //char   *     table_qualifier,
                                     HPCC_USER_NAME,         //char   *     table_owner,
-                                    (char*)table->queryName(),//char  *   table_name
+                                    (char*)table.queryName(),//char  *   table_name
                                     (char*)col->m_name.get(),//char   *     column_name,
                                     col->m_iXOType,         //short        data_type,
                                     (char*)col->m_type_name.get(),//char *  type_name,
