@@ -249,91 +249,118 @@ Description:
 Return:         true    on Success
                 false   unsuccessful
 ************************************************************************/
-bool HPCCdb::getTableSchema(const char * _tableFilter, CTable **_table)
+bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables)
 {
     tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:call to HPCCdb::getTableSchema('%s')\n", (_tableFilter));
-    bool rc = false;//assume the worst
 
     //First look in the schemaCache
-    CTable * cachedEntry = m_tableSchemaCache.getValue(_tableFilter);
-    if (!cachedEntry)
+    if (_tableFilter)
     {
-        //Call out to ws_sql to get schema
-        Owned<IClientGetDBMetaDataRequest> req;
-        Owned<IClientGetDBMetaDataResponse> resp;
-
-        req.setown( createClientGetDBMetaDataRequest());
-        req->setIncludeTables(true);
-        req->setTableFilter(_tableFilter);
-        req->setIncludeStoredProcedures(false);
-        CriticalBlock b(crit);
-        try
+        CTable * cachedEntry = m_tableSchemaCache.getValue(_tableFilter);
+        if (cachedEntry)
         {
-            tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:calling ws_sql.GetDBMetaData()...\n", ());
-            resp.setown(m_clientWs_sql->GetDBMetaData(req));//calls ws_sql
-            tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:complete\n", ());
+            tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:using cached table schema info\n", ());
+            _tables.append(*(LINK(cachedEntry)));
+            return true;
         }
+    }
 
-        catch (IException* e)
+    //Call out to ws_sql to get schema
+    Owned<IClientGetDBMetaDataRequest> req;
+    Owned<IClientGetDBMetaDataResponse> resp;
+
+    req.setown( createClientGetDBMetaDataRequest());
+    req->setIncludeTables(true);
+    req->setTableFilter(_tableFilter);
+    req->setIncludeStoredProcedures(false);
+    CriticalBlock b(crit);
+    try
+    {
+        tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:calling ws_sql.GetDBMetaData()...\n", ());
+        resp.setown(m_clientWs_sql->GetDBMetaData(req));//calls ws_sql
+        tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:complete\n", ());
+    }
+
+    catch (IException* e)
+    {
+        StringBuffer sb;
+        e->errorMessage(sb);
+
+        hpccErrors.setf("HPCC_Conn:Error calling ws_sql : '%s'\n", (sb.str()));
+        tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "%s", (sb.str()));
+        return false;
+    }
+
+    catch (...)
+    {
+        hpccErrors.setf("Exception thrown calling ws_sql");
+        tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Error calling ws_sql\n", ());
+        return false;
+    }
+
+    StringBuffer sbErrors;
+    if (checkForTopLevelErrors(resp->getExceptions(), sbErrors))
+        return false;
+
+    if (!_tableFilter)
+        m_tableSchemaCache.kill();//empty cache
+
+    //--------------------
+    //Tables
+    //--------------------
+    IArrayOf<IConstHPCCTable> &tables = resp->getTables();
+    ForEachItemIn(tableIdx, tables)//process all tables
+    {
+        //Add all found tables and their columns to the schemaCache
+        CHPCCTable &tableItem = (CHPCCTable &)tables.item(tableIdx);
+        tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "HPCC_Conn:Found table '%s'\n", (tableItem.getName()));
+        Owned<CTable> tblEntry;
+        tblEntry.setown(new CTable(tableItem.getName()));
+#ifdef _WIN32
+        OutputDebugString(tableItem.getName());OutputDebugString("\n");
+#endif
+        IArrayOf<IConstHPCCColumn> &columns = tableItem.getColumns();
+        ForEachItemIn(columnsIdx, columns)//process all columns in given table
         {
+            CHPCCColumn &columnItem = (CHPCCColumn &)columns.item(columnsIdx);
+            Owned<CColumn> columnEntry;
+            tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "   HPCC:Found column '%s'(%s)\n", (columnItem.getName(),columnItem.getType()));
+            columnEntry.setown(new CColumn(columnItem.getName()));
+#ifdef _WIN32
             StringBuffer sb;
-            e->errorMessage(sb);
+            sb.appendf("\t%s (%s)\n",columnItem.getName(), columnItem.getType());
+            OutputDebugString(sb.str());
+#endif
+            columnEntry->m_hpccType.set(columnItem.getType());
 
-            hpccErrors.setf("HPCC_Conn:Error calling ws_sql : '%s'\n", (sb.str()));
-            tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "%s", (sb.str()));
-            return false;
+            //Add to column array
+            tblEntry->addColumn(LINK(columnEntry));
         }
-
-        catch (...)
+        m_tableSchemaCache.setValue(tableItem.getName(), tblEntry);//save in the schemaCache
+        if (_tableFilter == NULL)
         {
-            hpccErrors.setf("Exception thrown calling ws_sql");
-            tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Error calling ws_sql\n", ());
-            return false;
+            _tables.append(*(LINK(tblEntry)));
         }
-
-        StringBuffer sbErrors;
-        if (checkForTopLevelErrors(resp->getExceptions(), sbErrors))
-            return false;
-
-        //--------------------
-        //Tables
-        //--------------------
-        IArrayOf<IConstHPCCTable> &tables = resp->getTables();
-        ForEachItemIn(tableIdx, tables)//process all tables
-        {
-            //Add all found tables and their columns to the schemaCache
-            CHPCCTable &tableItem = (CHPCCTable &)tables.item(tableIdx);
-            tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "HPCC_Conn:Found table '%s'\n", (tableItem.getName()));
-            Owned<CTable> tblEntry;
-            tblEntry.setown(new CTable(tableItem.getName()));
-            IArrayOf<IConstHPCCColumn> &columns = tableItem.getColumns();
-            ForEachItemIn(columnsIdx, columns)//process all columns in given table
-            {
-                CHPCCColumn &columnItem = (CHPCCColumn &)columns.item(columnsIdx);
-                Owned<CColumn> columnEntry;
-                tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "   HPCC:Found column '%s'(%s)\n", (columnItem.getName(),columnItem.getType()));
-                columnEntry.setown(new CColumn(columnItem.getName()));
-                columnEntry->m_hpccType.set(columnItem.getType());
-
-                //Add to column array
-                tblEntry->addColumn(LINK(columnEntry));
-            }
-            m_tableSchemaCache.setValue(tableItem.getName(), tblEntry);//save in the schemaCache
-        }
-        cachedEntry = m_tableSchemaCache.getValue(_tableFilter);//Look in the schemaCache
     }
-    else
-        tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:using cached table schema info\n", ());
 
-    if (cachedEntry)
+    if (_tableFilter)
     {
-        *_table = cachedEntry;
-        rc = true;
+        CTable * cachedEntry = m_tableSchemaCache.getValue(_tableFilter);
+        if (cachedEntry)
+        {
+            _tables.append(*(LINK(cachedEntry)));
+            return true;
+        }
     }
     else
-        tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Could not find '%s'\n", (_tableFilter));
+    {
+        if (!_tables.empty())
+            return true;
+        else
+            tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Could not find any tables\n", ());
+    }
 
-    return rc;
+    return false;
 }
 
 

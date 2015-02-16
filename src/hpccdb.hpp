@@ -233,7 +233,7 @@ public:
 
     //ws_sql calls
     bool        getHPCCDBSystemInfo();
-    bool        getTableSchema(const char * _tableFilter,  CTable **_table);
+    bool        getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables);
     bool        executeSQL(const char * sql, const char * targetQuerySet, StringBuffer & sbErrors);
     bool        getMoreResults(const char * _wuid, const char * dsName, aindex_t _start, aindex_t _count, IPropertyTree ** _ppResultsTree, StringBuffer & _sbErrors);
     bool        executeStoredProcedure(const char * procName, const char * querySet);
