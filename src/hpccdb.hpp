@@ -83,24 +83,24 @@ public:
 class CMyQuerySetQuery : public CInterface, public IInterface
 {
 private:
-    StringAttr          m_qsqName;
-    StringAttr          m_qsqAliasName;
+    StringAttr          m_name;
+    StringAttr          m_aliasName;
     IArrayOf<CColumn>   m_inputs;//ordered array of input arguments
     IArrayOf<CTable>    m_outputDatasets;//ordered array of named output datasets
 
 public:
     IMPLEMENT_IINTERFACE;
 
-    CMyQuerySetQuery(const char * _aliasName, const char * _name)
+    CMyQuerySetQuery(const char * _aliasName, const char * _qsqname)
     {
-        m_qsqAliasName.set(_aliasName);
-        m_qsqName.set(_name);
+        m_aliasName.set(_aliasName);
+        m_name.set(_qsqname);
     }
 
     virtual ~CMyQuerySetQuery() {}
 
-    const char * queryName()            { return m_qsqName; }
-
+    const char * queryName()            { return m_name; }
+    const char * queryAlias()           { return m_aliasName; }
     //Inputs
     void addInput(CColumn * _input)     { m_inputs.append(*_input); }
     aindex_t queryNumInputs()           { return m_inputs.ordinality(); }
@@ -132,7 +132,7 @@ public:
 class CMyQuerySet : public CInterface, public IInterface
 {
 private:
-    StringBuffer                m_name;
+    StringBuffer                m_name;//thor, hthor, roxie...
     IArrayOf<CMyQuerySetQuery>  m_queries;
 
 public:
@@ -141,8 +141,10 @@ public:
     CMyQuerySet(const char * _name) { m_name.append(_name); }
     virtual ~CMyQuerySet() {}
 
-    void addQuery(CMyQuerySetQuery * _query) { m_queries.append(*_query); }
+    const char * queryName()                    { return m_name.str(); }
 
+    void addQuery(CMyQuerySetQuery * _query)    { m_queries.append(*_query); }
+    IArrayOf<CMyQuerySetQuery> * queryQueries() { return &m_queries; }
     CMyQuerySetQuery * queryQuery(const char * queryName)
     {
         ForEachItemIn(Idx, m_queries)
@@ -185,12 +187,12 @@ private:
 
     //Stored procedures
     bool                        m_bGotDeployedQueries;
-    MapStringToMyClass<CMyQuerySet>  m_querySetMap;//QuerySets "thor", "hthor", "roxie", etc
+    IArrayOf<CMyQuerySet>       m_arrQuerySets;//QuerySets "thor", "hthor", "roxie", etc
     StringAttr                  m_currentQuerySet;
 
     //methods
     void        convertHPCCType(const char * hpccType, CColumn * pColumn);
-    void        getDeployedQueries();//populates m_querySetMap
+    void        getDeployedQueries();//populates m_arrQuerySets
     void        killResultsDatasets()   { m_ResultsDatasets.kill(); }
     bool        checkForTopLevelErrors(const IMultiException & _exc, StringBuffer & _sbErrors);
     bool        checkForErrors(const IMultiException & _exc, IConstECLWorkunit & _wu, StringBuffer & _sbErrors);
@@ -217,15 +219,33 @@ public:
 
     //stored procedure support
     //An SQL stored procedure is loosly the same as an HPCC deployed query
-    CMyQuerySetQuery *  queryStoredProcedure(const char * querySet, const char * name)
+    CMyQuerySetQuery * queryStoredProcedure(const char * querySetName, const char * name)
     {
         if (!m_bGotDeployedQueries)
             getDeployedQueries();//populate cache
-        CMyQuerySet * pQS = (CMyQuerySet *)m_querySetMap.getValue(querySet);
-        if (!pQS)
-            return NULL;
-        return pQS->queryQuery(name);
+
+        ForEachItemIn(Idx, m_arrQuerySets)//thor,hthor,roxie
+        {
+            CMyQuerySet &qrySet = (CMyQuerySet&)m_arrQuerySets.item(Idx);
+            if (0 == strcmp(qrySet.queryName(), querySetName))
+            {
+                CMyQuerySetQuery * pQuery = (CMyQuerySetQuery*)qrySet.queryQuery(name);
+                if (pQuery)
+                    return pQuery;
+                else
+                    break;
+            }
+        }
+        return NULL;
     }
+
+    const IArrayOf<CMyQuerySet> * queryQuerySets()
+    {
+        if (!m_bGotDeployedQueries)
+            getDeployedQueries();//populate cache
+        return &m_arrQuerySets;
+    }
+
 
     //Result row access
     bool        ReadFirstRow(IPropertyTree ** _row);

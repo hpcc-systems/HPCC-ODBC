@@ -162,14 +162,18 @@ void HPCCdb::getDeployedQueries()
         //Process each QuerySet
         //---------------------------
         IArrayOf<IConstHPCCQuerySet> &qSets = resp->getQuerySets();
-        ForEachItemIn(QSIdx, qSets)
+        ForEachItemIn(QSIdx, qSets)//thor, hthor, roxie
         {
             CHPCCQuerySet &hpccQuerySetItem = (CHPCCQuerySet &)qSets.item(QSIdx);
             tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "HPCC_Conn: Searching QuerySet '%s'...\n", (hpccQuerySetItem.getName()));
-
+#ifdef _WIN32
+            StringBuffer sb;
+            sb.appendf("QuerySet %s\n",hpccQuerySetItem.getName());//thor, hthor, roxie
+            OutputDebugString(sb.str());
+#endif
             Owned<CMyQuerySet> querySet;
             //---------------------------
-            //Get array of published queries within query set.
+            //Get array of published queries within QuerySet item.
             //We will look up a matching query in this array
             //for each QuerySetAlias in this QuerySet
             //---------------------------
@@ -183,6 +187,11 @@ void HPCCdb::getDeployedQueries()
             ForEachItemIn(QSAliasMapIdx, qsAliaseMap)
             {
                 CQuerySetAliasMap &qsAliaseMapItem = (CQuerySetAliasMap &)qsAliaseMap.item(QSAliasMapIdx);
+#ifdef _WIN32
+                StringBuffer sb;
+                sb.appendf("\tQuerySetQuery (alias) '%s', id '%s'\n",qsAliaseMapItem.getName(), qsAliaseMapItem.getId());
+                OutputDebugString(sb.str());
+#endif
                 Owned<CMyQuerySetQuery> querySetQuery;
                 querySetQuery.setown(new CMyQuerySetQuery(qsAliaseMapItem.getId(), qsAliaseMapItem.getName()));
                 //Find this aliased QuerySetQuery in the published queries array
@@ -195,8 +204,14 @@ void HPCCdb::getDeployedQueries()
                     CPublishedQuery &publishedQueryItem = (CPublishedQuery &)publishedQueries.item(pqIdx);
                     if (0 == strcmp(qsAliaseMapItem.getId(), publishedQueryItem.getId()))
                     {
+#ifdef _WIN32
+                        StringBuffer sb;
+                        sb.appendf("\t\tFound matching QuerySetQuery %s, id = %s\n",publishedQueryItem.getName(),publishedQueryItem.getId());
+                        OutputDebugString(sb.str());
+#endif
+
                         IConstQuerySignature &qSig = publishedQueryItem.getSignature();
-                        tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "   HPCC:Found '%s' \n", (publishedQueryItem.getName()));
+                        tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "   HPCC:Found '%s', id = %s\n", (publishedQueryItem.getName(),publishedQueryItem.getId()));
 
                         //Process this query set query's inputs
                         IArrayOf<IConstHPCCColumn> &columns = qSig.getInParams();
@@ -229,13 +244,17 @@ void HPCCdb::getDeployedQueries()
 
                         //Add query to query set
                         if (!querySet)
-                            querySet.setown(new CMyQuerySet(hpccQuerySetItem.getName()));
+                            querySet.setown(new CMyQuerySet(hpccQuerySetItem.getName()));//thor, hthor, roxie
                         querySet->addQuery(LINK(querySetQuery));
+                        break;
                     }
                 }
             }
             if (querySet)
-                m_querySetMap.setValue(hpccQuerySetItem.getName(), querySet);
+            {
+                LINK(querySet);
+                m_arrQuerySets.append(*querySet.get());//thor, hthor, roxie
+            }
         }
         m_bGotDeployedQueries = true;
     }

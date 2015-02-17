@@ -1089,7 +1089,35 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
             else
             {
                 tm_trace(hpcc_tm_Handle, UL_TM_MAJOR_EV, "HPCC_Conn:Dynamic Schema for all Procedures is being requested\n", ());
-                return DAM_FAILURE;
+                const IArrayOf<CMyQuerySet> * arrQuerySets = pConnDA->pHPCCdb->queryQuerySets();
+                ForEachItemIn(Idx, *arrQuerySets)//thor,hthor,roxie
+                {
+                    CMyQuerySet &qrySet = (CMyQuerySet&)arrQuerySets->item(Idx);
+                    ForEachItemIn(Idx2, *qrySet.queryQueries())
+                    {
+                        CMyQuerySetQuery &query = qrySet.queryQueries()->item(Idx2);
+                        StringBuffer procName;
+                        procName.setf("%s.%s",qrySet.queryName(), query.queryName());
+
+                        rc = dam_add_damobj_proc(pMemTree, // XM_Tree *    pMemTree,
+                            pList,                  // DAM_OBJ_LIST pList,
+                            pSearchObj,             // DAM_OBJ      pSearchObj,
+                            HPCC_CATALOG_NAME,      // char   *proc_qualifier,
+                            HPCC_USER_NAME,         // char   *proc_owner,
+                            (char*)procName.str(),  // char   *proc_name,
+                            (long)query.queryNumInputs(),// long   num_input_params,Not used at this time
+                            (long)DAMOBJ_NOTSET,    // long   num_output_params,Not used at this time
+                            (long)query.queryNumOutputDatasets(),// long   num_result_sets,
+                            SQL_PT_PROCEDURE,       // short  proc_type, does not have a return value.
+                            (char*)&query,          // char   *userdata,
+                            NULL);                  // char   *remarks
+                        if (rc != DAM_SUCCESS)
+                        {
+                            return DAM_FAILURE;
+                        }
+                    }
+                }
+                return DAM_SUCCESS;
             }
         }
         break;

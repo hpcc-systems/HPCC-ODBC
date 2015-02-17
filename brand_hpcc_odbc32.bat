@@ -1,4 +1,4 @@
-rem if "%PROGRESS_SDK_DIR%".==. set PROGRESS_SDK_DIR=C:\Program Files (x86)\Progress\DataDirect\oaodbclocal72
+if "%PROGRESS_SDK_DIR%".=="". set PROGRESS_SDK_DIR=C:\Program Files (x86)\Progress\DataDirect\oaodbclocal72
 
 @echo on
 @echo ==============================================================================
