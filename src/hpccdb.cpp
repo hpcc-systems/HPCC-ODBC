@@ -334,7 +334,7 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
         CHPCCTable &tableItem = (CHPCCTable &)tables.item(tableIdx);
         tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "HPCC_Conn:Found table '%s'\n", (tableItem.getName()));
         Owned<CTable> tblEntry;
-        tblEntry.setown(new CTable(tableItem.getName()));
+        tblEntry.setown(new CTable(tableItem.getName(), tableItem.getDescription()));
 #ifdef _WIN32
         OutputDebugString(tableItem.getName());OutputDebugString("\n");
 #endif
