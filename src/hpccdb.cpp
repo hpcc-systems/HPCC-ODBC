@@ -305,7 +305,7 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, CTable **_table)
             CHPCCTable &tableItem = (CHPCCTable &)tables.item(tableIdx);
             tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "HPCC_Conn:Found table '%s'\n", (tableItem.getName()));
             Owned<CTable> tblEntry;
-            tblEntry.setown(new CTable(tableItem.getName()));
+            tblEntry.setown(new CTable(tableItem.getName(), tableItem.getDescription()));
             IArrayOf<IConstHPCCColumn> &columns = tableItem.getColumns();
             ForEachItemIn(columnsIdx, columns)//process all columns in given table
             {

@@ -953,12 +953,12 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                             pSearchObj,                 //DAM_OBJ       pSearchObj,
                             HPCC_QUALIFIER_NAME,        //char   *      table_qualifier,
                             HPCC_USER_NAME,             //char   *      table_owner,
-                            pSearchTableObj->table_name,//char   *      table_name,
+                            (char*)table->queryName(),  //char   *      table_name,
                             "TABLE",                    //char   *      table_type, (TABLE == managed by IP)
                             NULL,                       //char   *      table_path,
                             NULL,                       //char   *      table_userdata
                             NULL,                       //char   *      function_support, IP_TABLE_SUPPORT_SELECT
-                            NULL);                      //char   *      remarks
+                            (char*)table->queryDescription()); //char   *      remarks
                         if (rc != DAM_SUCCESS)
                         {
                             return DAM_FAILURE;
