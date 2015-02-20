@@ -79,8 +79,8 @@ IP_SUPPORT_ARRAY    hpcc_support_array =
         0   /* Reserved for future use */
     };
 
-#define HPCC_QUALIFIER_NAME "SCHEMA"
-#define HPCC_CATALOG_NAME   "SCHEMA"
+#define HPCC_QUALIFIER_NAME "HPCC System"
+#define HPCC_CATALOG_NAME   "HPCC System"
 #define HPCC_USER_NAME      "HPCCUSER"   //table is managed by user(us)
 
 static int     bAllowSchemaSearchPattern = FALSE;
@@ -951,15 +951,15 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                 {
                     assertex(!_tables.empty());
                     CTable &table = _tables.item(0);
-                    if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, HPCC_USER_NAME, (char*)table.queryName()))
+                    if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, (char*)table.queryOwner(), (char*)table.queryName()))
                     {
                         rc = dam_add_damobj_table(
                             pMemTree,                   //XM_Tree *     pMemTree,
                             pList,                      //DAM_OBJ_LIST  pList,
                             pSearchObj,                 //DAM_OBJ       pSearchObj,
                             HPCC_QUALIFIER_NAME,        //char   *      table_qualifier,
-                            HPCC_USER_NAME,             //char   *      table_owner,
-                            (char*)table.queryName(),  //char   *      table_name,
+                            (char*)table.queryOwner(),  //char   *      table_owner,
+                            (char*)table.queryName(),   //char   *      table_name,
                             "TABLE",                    //char   *      table_type, (TABLE == managed by IP)
                             NULL,                       //char   *      table_path,
                             NULL,                       //char   *      table_userdata
@@ -992,7 +992,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                             pList,                     //DAM_OBJ_LIST  pList,
                             pSearchObj,                //DAM_OBJ       pSearchObj,
                             HPCC_QUALIFIER_NAME,       //char   *      table_qualifier,
-                            HPCC_USER_NAME,            //char   *      table_owner,
+                            (char*)table.queryOwner(), //char   *      table_owner,
                             (char*)table.queryName(),  //char   *      table_name,
                             "TABLE",                   //char   *      table_type, (TABLE == managed by IP)
                             NULL,                      //char   *      table_path,
@@ -1030,7 +1030,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                     for (aindex_t colIdx = 0; colIdx < numCols; colIdx++)//iterate over all columns in specified table
                     {
                         CColumn *col = table.queryColumn(colIdx);
-                        if (hpcc_is_matching_column(pSearchColumnObj, HPCC_QUALIFIER_NAME, HPCC_USER_NAME, (char*)table.queryName()))
+                        if (hpcc_is_matching_column(pSearchColumnObj, HPCC_QUALIFIER_NAME, (char*)table.queryOwner(), (char*)table.queryName()))
                         {
                             populateOAtypes(col);//map HPCC data types to OpenAccess dam_add_damobj_column types
                             rc = dam_add_damobj_column(
@@ -1038,7 +1038,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                     pList,                  //DAM_OBJ_LIST pList,
                                     pSearchObj,             //DAM_OBJ      pSearchObj,
                                     HPCC_QUALIFIER_NAME,    //char   *     table_qualifier,
-                                    HPCC_USER_NAME,         //char   *     table_owner,
+                                    (char*)table.queryOwner(),//char   *     table_owner,
                                     (char*)table.queryName(),//char  *   table_name
                                     (char*)col->m_name.get(),//char   *     column_name,
                                     col->m_iXOType,         //short        data_type,

@@ -63,14 +63,17 @@ class CTable : public CInterface, public IInterface
     StringAttr          m_name;
     StringAttr          m_description;
     IArrayOf<CColumn>   m_columns;
+    StringAttr          m_owner;
 
 public:
     IMPLEMENT_IINTERFACE;
-    CTable(const char * _name, const char * _description) : m_name(_name), m_description(_description) {}
+    CTable(const char * _name, const char * _description, const char * _owner) : m_name(_name), m_description(_description), m_owner(_owner) {}
     virtual ~CTable() {}
 
     const char * queryName()                    { return m_name.get(); }
     const char * queryDescription()             { return m_description.get(); }
+    const char * queryOwner()                   { return m_owner.get(); }
+
     void        addColumn(CColumn * _column)    { m_columns.append(*_column); }
     aindex_t    queryNumColumns()               { return m_columns.ordinality(); }
     CColumn *   queryColumn(aindex_t colNum)    { return (CColumn *)&m_columns.item(colNum); }//zero based column indices
@@ -112,12 +115,12 @@ public:
     void addOutputDatasetColumn(const char * datasetName, CColumn * _output)
     {
         if (0 == m_outputDatasets.ordinality())
-            m_outputDatasets.append(*(new CTable(datasetName,NULL)));//add new output dataset
+            m_outputDatasets.append(*(new CTable(datasetName,NULL,NULL)));//add new output dataset
         else
         {
             CTable & dataset = m_outputDatasets.item(m_outputDatasets.ordinality() - 1);
             if (0 != strcmp(datasetName, dataset.queryName()))
-                m_outputDatasets.append(*(new CTable(datasetName,NULL)));//add new output dataset
+                m_outputDatasets.append(*(new CTable(datasetName,NULL,NULL)));//add new output dataset
         }
         CTable & dataset = m_outputDatasets.item(m_outputDatasets.ordinality() - 1);
         dataset.addColumn(_output);
