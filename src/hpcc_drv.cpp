@@ -125,7 +125,7 @@ int             OAIP_init(TM_ModuleCB tmHandle, XM_Tree *pMemTree, IP_HENV *phen
     tm_trace(hpcc_tm_Handle, UL_TM_F_TRACE, "HPCC_Conn:OAIP_init() has been called\n", ());//allocate the environment handle
     if(!(pEnvDA = (HPCC_ENV_DA *)xm_allocItem(pMemTree, sizeof(HPCC_ENV_DA), XM_NOFLAGS)))
     {
-        dam_addError(NULL, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_init : xm_allocItem failed");
+        dam_addError(NULL, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_init : internal error, xm_allocItem failed");
         return DAM_FAILURE;
     }
     pEnvDA->pMemTree = pMemTree;    //save the memory tree handle
@@ -254,7 +254,7 @@ int             OAIP_getSupport(IP_HDBC hdbc, int iSupportType,
     if (iSupportType  > sizeof(hpcc_support_array))
     {
         StringBuffer err;
-        err.setf("HPCC_Conn:OAIP_getSupport : iSupportType '%d' out of bounds", iSupportType);
+        err.setf("HPCC_Conn:OAIP_getSupport : internal error, iSupportType '%d' out of bounds", iSupportType);
         dam_addError(hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
         return DAM_FAILURE;
     }
@@ -282,7 +282,7 @@ int             OAIP_connect(DAM_HDBC dam_hdbc, IP_HENV henv,
     /* allocate the connection da */
     if(!(pConnDA = (HPCC_CONN_DA *)xm_allocItem(pMemTree, sizeof(HPCC_CONN_DA), XM_NOFLAGS)))
     {
-        dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_connect : xm_allocItem failed");
+        dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_connect : internal error, xm_allocItem failed");
         return DAM_FAILURE;
     }
 
@@ -372,7 +372,9 @@ int             OAIP_connect(DAM_HDBC dam_hdbc, IP_HENV henv,
         delete pConnDA->pHPCCdb;
 
         StringBuffer err;
-        err.setf("HPCC_Conn:OAIP_connect : Unable to connect to WsSQL on '%s:%s' as '%s'", wssqlIP.str(), wssqlPort.str(), sUserName);
+        err.setf("HPCC_Conn:OAIP_connect : Unable to connect to WsSQL on '%s:%s'", wssqlIP.str(), wssqlPort.str());
+        if (sUserName && *sUserName)
+            err.appendf(" as '%s'", sUserName);
         dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
 
         return DAM_FAILURE;
@@ -447,7 +449,7 @@ int             OAIP_execute(IP_HDBC hdbc,
     XM_Tree      *  pMemTree;
     DAM_HCOL        hcol;
 
-    tm_trace(hpcc_tm_Handle, UL_TM_F_TRACE, "HPCC_Conn:OAIP_execute() has been called", (0));
+    tm_trace(hpcc_tm_Handle, UL_TM_F_TRACE, "HPCC_Conn:OAIP_execute() has been called\n", (0));
 
     if(iStmtType != DAM_SELECT)
     {
@@ -458,7 +460,7 @@ int             OAIP_execute(IP_HDBC hdbc,
     pMemTree = dam_getMemTree(hstmt);/* get the memory tree to be used */
     if(!(pStmtDA = (HPCC_STMT_DA *)xm_allocItem(pMemTree, sizeof(HPCC_STMT_DA), XM_NOFLAGS)))/* allocate a new stmt */
     {
-        dam_addError(hdbc, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_execute : xm_allocItem failed");
+        dam_addError(hdbc, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_execute : internal error, xm_allocItem failed");
         return DAM_FAILURE;
     }
     /* initialize the StmtDA */
@@ -506,7 +508,7 @@ int             OAIP_execute(IP_HDBC hdbc,
         if (!pCol)
         {
             StringBuffer err;
-            err.setf("HPCC_Conn:OAIP_execute : Table '%s' Column '%s' not found", table.queryName(), sColName);
+            err.setf("HPCC_Conn:OAIP_execute : Table '%s', Column '%s' not found", table.queryName(), sColName);
             dam_addError(hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
             return DAM_FAILURE;
         }
@@ -586,7 +588,7 @@ int             OAIP_procedure(IP_HDBC hdbc, DAM_HSTMT hstmt, int iType, int *pi
     pMemTree = dam_getMemTree(hstmt);/* get the memory tree to be used */
     if(!(pStmtDA = (HPCC_STMT_DA *)xm_allocItem(pMemTree, sizeof(HPCC_STMT_DA), XM_NOFLAGS)))/* allocate a new stmt */
     {
-        dam_addError(hdbc, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_procedure : xm_allocItem failed");
+        dam_addError(hdbc, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_procedure : internal error, xm_allocItem failed");
         return DAM_FAILURE;
     }
 
@@ -658,7 +660,7 @@ int             OAIP_procedure(IP_HDBC hdbc, DAM_HSTMT hstmt, int iType, int *pi
                                      &iValLen); //Length of the return value
         if (iRetCode != DAM_SUCCESS)
         {
-            dam_addError(hdbc, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_procedure : dam_getValueToSet failed");
+            dam_addError(hdbc, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_procedure : internal error, dam_getValueToSet failed");
             return DAM_FAILURE;
         }
         if (0 == iParamNum)
@@ -956,7 +958,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                     DAM_OBJ_LIST pList,
                     DAM_OBJ pSearchObj)
 {
-    tm_trace(hpcc_tm_Handle, UL_TM_F_TRACE, "HPCC_Conn:OAIP_schema() has been called \n", ());
+    tm_trace(hpcc_tm_Handle, UL_TM_F_TRACE, "HPCC_Conn:OAIP_schema() has been called\n", ());
 
     int rc;
     HPCC_CONN_DA *pConnDA = (HPCC_CONN_DA *)hdbc;
@@ -1043,7 +1045,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
 
             if(pSearchColumnObj)
             {
-                tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV,"HPCC_Conn:Dynamic Schema for columns of table :(%s.%s.%s) is being requested. Column Schema requested with %s \n",
+                tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV,"HPCC_Conn:Dynamic Schema for columns of table :(%s.%s.%s) is being requested. Column Schema requested with %s\n",
                     (pSearchColumnObj->table_qualifier,pSearchColumnObj->table_owner,pSearchColumnObj->table_name,
                     dam_isSearchPatternObject(pSearchObj) ? "Pattern SearchObject" : "Non-Pattern SearchObject"));
 
@@ -1180,7 +1182,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                             NULL);                  // char   *remarks
                     if (rc != DAM_SUCCESS)
                     {
-                        dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_schema : dam_add_damobj_proc failed");
+                        dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, "HPCC_Conn:OAIP_schema : internal error, dam_add_damobj_proc failed");
                         return DAM_FAILURE;
                     }
                 }
@@ -1238,7 +1240,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                 if (!pQuery)
                 {
                     StringBuffer err;
-                    err.setf("HPCC_Conn:OAIP_schema : Query '%s' not found in HPCC cache\n", pSearchProcColumnObj->name);
+                    err.setf("HPCC_Conn:OAIP_schema : Query '%s' not found", pSearchProcColumnObj->name);
                     dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
                     return DAM_FAILURE;
                 }
