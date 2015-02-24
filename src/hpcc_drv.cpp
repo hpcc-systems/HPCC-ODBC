@@ -949,7 +949,6 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                 IArrayOf<CTable> _tables;
                 if (pConnDA->pHPCCdb->getTableSchema(pSearchTableObj->table_name, _tables))
                 {
-                    assertex(!_tables.empty());
                     CTable &table = _tables.item(0);
                     if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, (char*)table.queryOwner(), (char*)table.queryName()))
                     {
@@ -983,7 +982,6 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                 IArrayOf<CTable> _tables;
                 if (pConnDA->pHPCCdb->getTableSchema(NULL, _tables))
                 {
-                    assertex(!_tables.empty());
                     ForEachItemIn(i, _tables)
                     {
                         CTable &table = _tables.item(i);
@@ -1024,7 +1022,6 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                 IArrayOf<CTable> _tables;
                 if (pConnDA->pHPCCdb->getTableSchema(pSearchColumnObj->table_name, _tables))//find specified table
                 {
-                    assertex(!_tables.empty());
                     CTable &table = _tables.item(0);
                     aindex_t numCols = table.queryNumColumns();
                     for (aindex_t colIdx = 0; colIdx < numCols; colIdx++)//iterate over all columns in specified table
@@ -1071,7 +1068,51 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
             else
             {
                 tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV,"HPCC_Conn:Dynamic Schema for all columns is being requested\n",());
-                return DAM_FAILURE;
+                IArrayOf<CTable> _tables;
+                if (pConnDA->pHPCCdb->getTableSchema(NULL, _tables))
+                {
+                    ForEachItemIn(tblIdx, _tables)
+                    {
+                        CTable &table = _tables.item(tblIdx);
+                        aindex_t numCols = table.queryNumColumns();
+                        const char * tableOwner = table.queryOwner();
+                        const char * tableName = table.queryName();
+                        for (aindex_t colIdx = 0; colIdx < numCols; colIdx++)//iterate over all columns in specified table
+                        {
+                            CColumn *col = table.queryColumn(colIdx);
+                            if (hpcc_is_matching_column(pSearchColumnObj, HPCC_QUALIFIER_NAME, (char*)table.queryOwner(), (char*)table.queryName()))
+                            {
+                                populateOAtypes(col);//map HPCC data types to OpenAccess dam_add_damobj_column types
+                                rc = dam_add_damobj_column(
+                                    pMemTree,               //XM_Tree     *pMemTree,
+                                    pList,                  //DAM_OBJ_LIST pList,
+                                    pSearchObj,             //DAM_OBJ      pSearchObj,
+                                    HPCC_QUALIFIER_NAME,    //char   *     table_qualifier,
+                                    (char*)tableOwner,      //char   *     table_owner,
+                                    (char*)tableName,       //char  *      table_name
+                                    (char*)col->m_name.get(),//char   *     column_name,
+                                    col->m_iXOType,         //short        data_type,
+                                    (char*)col->m_type_name.get(),//char *  type_name,
+                                    col->m_char_max_length, //long         char_max_length,"Length in bytes of data transferred to the client in its default format."
+                                    col->m_numeric_precision,//long         numeric_precision,  "Maximum number of digits used by the data in the column."
+                                    DAMOBJ_NOTSET,          //short        numeric_precision_radix,
+                                    DAMOBJ_NOTSET,          //short        numeric_scale,
+                                    XO_NULLABLE,            //short        nullable,
+                                    DAMOBJ_NOTSET,          //short        scope,
+                                    NULL,                   //char   *     userdata,
+                                    NULL,                   //char   *     operator_support,
+                                    SQL_PC_NOT_PSEUDO,      //short        pseudo_column,
+                                    0,                      //short        column_type,
+                                    NULL);                  //char   *     remarks
+                                if (rc != DAM_SUCCESS)
+                                {
+                                    return DAM_FAILURE;
+                                }
+                            }
+                        }
+                    }
+                }
+                return DAM_SUCCESS;
             }
         }
         break;
