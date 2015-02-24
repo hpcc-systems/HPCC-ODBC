@@ -1004,7 +1004,6 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                         {
                             //Dont treat as failure, since others may succeed
                             tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_table failed on '%s', ignoring\n",(table.queryName()));
-                            continue;
                         }
                     }
                 }
@@ -1060,7 +1059,6 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                             {
                                 //Dont treat as failure, since others may succeed
                                 tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_column failed on table '%s', column '%s', type '%s', ignoring\n",(table.queryName(),col->m_name.get(),col->m_type_name.get() ));
-                                continue;
                             }
                         }
                     }
@@ -1114,7 +1112,6 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                 {
                                     //Dont treat as failure, since others may succeed
                                     tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_column failed on table '%s', column '%s', type '%s', ignoring\n",(table.queryName(),col->m_name.get(),col->m_type_name.get() ));
-                                    continue;
                                 }
                             }
                         }
@@ -1196,7 +1193,6 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                         {
                             //Dont treat as failure, since others may succeed
                             tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_proc failed on procedure '%s', ignoring\n",( procName.str() ));
-                            continue;
                         }
                     }
                 }
@@ -1249,7 +1245,6 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                         {
                             //Dont treat as failure, since others may succeed
                             tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_proc_column failed on procedure '%s', column '%s', ignoring\n",(pSearchProcColumnObj->name,pCol->m_name.get()  ));
-                            continue;
                         }
                     }
                     else
@@ -1296,7 +1291,6 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                 {
                                     //Dont treat as failure, since others may succeed
                                     tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_proc_column failed on procedure '%s', column '%s', ignoring\n",(pSearchProcColumnObj->name,pCol->m_name.get()  ));
-                                    continue;
                                 }
                             }
                         }
