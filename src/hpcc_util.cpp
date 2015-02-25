@@ -75,6 +75,10 @@ int hpcc_add_row(HPCC_STMT_DA *pStmtDA, DAM_HROW hrow, IPropertyTree * pRow, CCo
         tm_trace(hpcc_tm_Handle, UL_TM_ERRORS, "HPCC_Conn:hpcc_add_row unknown data type %u\n", (pCol->m_iXOType));
     }
 
+    StringBuffer err;
+    err.setf("HPCC_Conn:hpcc_add_row : Unsupported pCol->m_iXOType type '%d'", pCol->m_iXOType);
+    dam_addError(pStmtDA->pConnDA->dam_hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
+
     return DAM_FAILURE;
 }
 
@@ -92,6 +96,7 @@ int             hpcc_exec(const char * sqlQuery, const char * targetQuerySet, HP
     int         iRetCode;
 
     //call ws_sql to get row(s)
+    sbErrors.set("HPCC_Conn:hpcc_exec : ");
     if (!pHPCCdb->executeSQL(sqlQuery, targetQuerySet, sbErrors))
     {
         dam_addError(pStmtDA->pConnDA->dam_hdbc, pStmtDA->dam_hstmt, DAM_IP_ERROR, 0, (char *)sbErrors.str());
