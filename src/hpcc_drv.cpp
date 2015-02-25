@@ -994,6 +994,9 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                             (char*)table.queryDescription()); //char   *      remarks
                         if (rc != DAM_SUCCESS)
                         {
+                            StringBuffer err;
+                            err.setf("HPCC_Conn:OAIP_schema : dam_add_damobj_table failed on '%s'",(char*)table.queryName());
+                            dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
                             return DAM_FAILURE;
                         }
                     }
@@ -1029,7 +1032,8 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                             NULL);                     //char   *      remarks
                         if (rc != DAM_SUCCESS)
                         {
-                            return DAM_FAILURE;
+                            //Dont treat as failure, since others may succeed
+                            tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_table failed on '%s', ignoring\n",(table.queryName()));
                         }
                     }
                 }
@@ -1066,7 +1070,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                     pSearchObj,             //DAM_OBJ      pSearchObj,
                                     HPCC_QUALIFIER_NAME,    //char   *     table_qualifier,
                                     (char*)table.queryOwner(),//char   *     table_owner,
-                                    (char*)table.queryName(),//char  *   table_name
+                                    (char*)table.queryName(),//char  *      table_name
                                     (char*)col->m_name.get(),//char   *     column_name,
                                     col->m_iXOType,         //short        data_type,
                                     (char*)col->m_type_name.get(),//char *  type_name,
@@ -1083,9 +1087,9 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                     NULL);                  //char   *     remarks
                             if (rc != DAM_SUCCESS)
                             {
-                                return DAM_FAILURE;
+                                //Dont treat as failure, since others may succeed
+                                tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_column failed on table '%s', column '%s', type '%s', ignoring\n",(table.queryName(),col->m_name.get(),col->m_type_name.get() ));
                             }
-
                         }
                     }
                 }
@@ -1138,7 +1142,8 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                     NULL);                  //char   *     remarks
                                 if (rc != DAM_SUCCESS)
                                 {
-                                    return DAM_FAILURE;
+                                    //Dont treat as failure, since others may succeed
+                                    tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_column failed on table '%s', column '%s', type '%s', ignoring\n",(table.queryName(),col->m_name.get(),col->m_type_name.get() ));
                                 }
                             }
                         }
@@ -1221,7 +1226,8 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                             NULL);                  // char   *remarks
                         if (rc != DAM_SUCCESS)
                         {
-                            return DAM_FAILURE;
+                            //Dont treat as failure, since others may succeed
+                            tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_proc failed on procedure '%s', ignoring\n",( procName.str() ));
                         }
                     }
                 }
@@ -1274,7 +1280,8 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                     NULL);                      //   char   *remarks
                         if (rc != DAM_SUCCESS)
                         {
-                            return DAM_FAILURE;
+                            //Dont treat as failure, since others may succeed
+                            tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_proc_column failed on procedure '%s', column '%s', ignoring\n",(pSearchProcColumnObj->name,pCol->m_name.get()  ));
                         }
                     }
                     else
@@ -1321,7 +1328,8 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                             NULL);                      //   char   *remarks
                                 if (rc != DAM_SUCCESS)
                                 {
-                                    return DAM_FAILURE;
+                                    //Dont treat as failure, since others may succeed
+                                    tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV, "HPCC_Conn:OAIP_schema : dam_add_damobj_proc_column failed on procedure '%s', column '%s', ignoring\n",(pSearchProcColumnObj->name,pCol->m_name.get()  ));
                                 }
                             }
                         }
@@ -1339,6 +1347,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
         }
 
     default:
+        tm_trace(hpcc_tm_Handle,UL_TM_MINOR_EV, "HPCC_Conn:OAIP_schema : Ignoring unsupported schema type '%d'\n",( iType ));
         break;
     }
 
