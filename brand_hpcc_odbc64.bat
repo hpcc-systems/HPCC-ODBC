@@ -1,43 +1,43 @@
-if "%PROGRESS_SDK32_DIR%".=="". set PROGRESS_SDK32_DIR=C:\Program Files (x86)\Progress\DataDirect\oaodbclocal72
+if "%PROGRESS_SDK64_DIR%".=="". set PROGRESS_SDK64_DIR=C:\Program Files\Progress\DataDirect\oaodbclocal72
 
 @echo on
 @echo ===============================================================================
-@echo This batch file performs the branding of the 32 bit HPCC-ODBC Connector and the
+@echo This batch file performs the branding of the 64 bit HPCC-ODBC Connector and the
 @echo Management Console plug-in. This assumes the "Progress DataDirect OEM SDK
 @echo Local, version 7.2"
 @echo ===============================================================================
 
 @echo Ensure SDK is properly installed and mirrored
-if not exist "%PROGRESS_SDK32_DIR%\admin.ORIGINAL\mmcoa.dll" goto :MISSING_SDK_BRANCH
-if not exist "%PROGRESS_SDK32_DIR%\custom\install.ORIGINAL\basic\setup.ini" goto :MISSING_SDK_BRANCH
+if not exist "%PROGRESS_SDK64_DIR%\admin.ORIGINAL\mmcoa.dll" goto :MISSING_SDK_BRANCH
+if not exist "%PROGRESS_SDK64_DIR%\custom\install.ORIGINAL\basic\setup.ini" goto :MISSING_SDK_BRANCH
 
 @echo ------------------------------------------------------------------------------
 @echo Restore original Progress DataDirect SDK "image" folder
 @echo ------------------------------------------------------------------------------
-rmdir "%PROGRESS_SDK32_DIR%\custom\install" /S /Q
-xcopy "%PROGRESS_SDK32_DIR%\custom\install.ORIGINAL" "%PROGRESS_SDK32_DIR%\custom\install\*.*" /s /y /q
-del "%PROGRESS_SDK32_DIR%\custom\install\image\cla*.inp"
-del "%PROGRESS_SDK32_DIR%\custom\install\image\custom*.ini"
+rmdir "%PROGRESS_SDK64_DIR%\custom\install" /S /Q
+xcopy "%PROGRESS_SDK64_DIR%\custom\install.ORIGINAL" "%PROGRESS_SDK64_DIR%\custom\install\*.*" /s /y /q
+del "%PROGRESS_SDK64_DIR%\custom\install\image\cla*.inp"
+del "%PROGRESS_SDK64_DIR%\custom\install\image\custom*.ini"
 
 @echo ------------------------------------------------------------------------------
 @echo Brand the MMC management console plug-in
 @echo Refer to the "OpenAccess™ SDK Distribution Guide" for details
 @echo ------------------------------------------------------------------------------
-rmdir "%PROGRESS_SDK32_DIR%\admin" /S /Q
-xcopy "%PROGRESS_SDK32_DIR%\admin.ORIGINAL" "%PROGRESS_SDK32_DIR%\admin\*.*" /s /y /q
-"%PROGRESS_SDK32_DIR%\custom\branding\brandmmc" "%PROGRESS_SDK32_DIR%\admin\mmcoa.dll" local -c "HPCC Systems" -s "HPCC Systems" -p "HPCC-ODBC32 Connector" -v 0.50
-if not exist "%PROGRESS_SDK32_DIR%\admin\prepmsc.reg" goto :MISSING_MMC
+rmdir "%PROGRESS_SDK64_DIR%\admin" /S /Q
+xcopy "%PROGRESS_SDK64_DIR%\admin.ORIGINAL" "%PROGRESS_SDK64_DIR%\admin\*.*" /s /y /q
+"%PROGRESS_SDK64_DIR%\custom\branding\brandmmc" "%PROGRESS_SDK64_DIR%\admin\mmcoa.dll" local -c "HPCC Systems" -s "HPCC Systems" -p "HPCC-ODBC64 Connector" -v 0.50
+if not exist "%PROGRESS_SDK64_DIR%\admin\prepmsc.reg" goto :MISSING_MMC
 
 @echo ------------------------------------------------------------------------------
 @echo Brand the drivers. We specify the "HS" prefix which is registered with Progress
 @echo Refer to the "OpenAccess™ SDK Distribution Guide" for details
 @echo ------------------------------------------------------------------------------
-"%PROGRESS_SDK32_DIR%\custom\branding\brandodbc" "%PROGRESS_SDK32_DIR%\custom\install\image\bin"  local -N HS -P HPCC4Me  -X n -S n  -c "HPCC Systems" -s  "HPCC Systems"  -p "HPCC-ODBC32 Connector"  -v 0.50
-if not exist "%PROGRESS_SDK32_DIR%\custom\install\image\bin\HSoal25.dll" goto :MISSING_DRIVER
+"%PROGRESS_SDK64_DIR%\custom\branding\brandodbc" "%PROGRESS_SDK64_DIR%\custom\install\image\bin"  local -N HS -P HPCC4Me  -X n -S n  -c "HPCC Systems" -s  "HPCC Systems"  -p "HPCC-ODBC64 Connector"  -v 0.50
+if not exist "%PROGRESS_SDK64_DIR%\custom\install\image\bin\HSoal25.dll" goto :MISSING_DRIVER
 
 @echo ------------------------------------------------------------------------------
 @echo Please ensure the following branded files were created for the Local 
-@echo ODBC client, in the %PROGRESS_SDK32_DIR%\custom\install\image\bin folder
+@echo ODBC client, in the %PROGRESS_SDK64_DIR%\custom\install\image\bin folder
 @echo .
 @echo HSoal25.dll - Branded Local ODBC client Driver 
 @echo HSoald25.dll - Branded Local ODBC driver dialog file 
@@ -55,7 +55,7 @@ goto :DONE
 
 :MISSING_SDK_BRANCH
 @echo ERROR! "Progress DataDirect OEM SDK Local, version 7.2" missing or not mirrored. Please ensure it
-@echo is installed, and create "%PROGRESS_SDK32_DIR%\admin.ORIGINAL" and "%PROGRESS_SDK32_DIR%\custom\install.ORIGINAL" !!!
+@echo is installed, and create "%PROGRESS_SDK64_DIR%\admin.ORIGINAL" and "%PROGRESS_SDK64_DIR%\custom\install.ORIGINAL" !!!
 goto :DONE
 
 :MISSING_MMC
