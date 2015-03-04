@@ -4,19 +4,19 @@ set AutoSave=off
 e "================================================================================"
 e "${ServiceName_C}: service configuration"
 e "================================================================================"
-saa ${ServiceName_C} ServiceIPModule hpcc_odbc_32.dll
+saa ${ServiceName_C} ServiceIPModule hpcc_odbc_64.dll
 
 e "--------------------------------------------------------------------------------"
 e "${ServiceName_C}: datasource configuration HPCC-ODBC_ConnDS"
 e "--------------------------------------------------------------------------------"
-dsc  ${ServiceName_C} HPCC-ODBC_ConnDS
-dsar ${ServiceName_C} HPCC-ODBC_ConnDS DataSourceIPType DAMIP
-dsar ${ServiceName_C} HPCC-ODBC_ConnDS DataSourceLogonMethod DBMSLogon(UID,PWD)
-dsaa ${ServiceName_C} HPCC-ODBC_ConnDS DataSourceIPProperties HPCC-ODBC_ConnDSN
+dsc  ${ServiceName_C} HPCC-ODBC64_ConnDS
+dsar ${ServiceName_C} HPCC-ODBC64_ConnDS DataSourceIPType DAMIP
+dsar ${ServiceName_C} HPCC-ODBC64_ConnDS DataSourceLogonMethod DBMSLogon(UID,PWD)
+dsaa ${ServiceName_C} HPCC-ODBC64_ConnDS DataSourceIPProperties HPCC-ODBC64_ConnDSN
 
 saa ${ServiceName_C}  ServiceEnvironmentVariable "PATH=${InstallDir}\ip\bin"
 
-dsaa ${ServiceName_C} HPCC-ODBC_ConnDS DataSourceIPCustomProperties PROTOCOL=http;WSSQLPORT=8510;WSSQLIP=127.0.0.1;CLUSTER=hthor;DEFAULTQUERYSET=thor;MAXROWBUFFCOUNT=10000;
+dsaa ${ServiceName_C} HPCC-ODBC64_ConnDS DataSourceIPCustomProperties PROTOCOL=http;WSSQLPORT=8510;WSSQLIP=127.0.0.1;CLUSTER=hthor;DEFAULTQUERYSET=thor;MAXROWBUFFCOUNT=10000;
 
 e "SaveConfig" 
 SaveConfig

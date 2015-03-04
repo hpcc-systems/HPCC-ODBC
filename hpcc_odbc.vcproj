@@ -11,6 +11,9 @@
 		<Platform
 			Name="Win32"
 		/>
+		<Platform
+			Name="x64"
+		/>
 	</Platforms>
 	<ToolFiles>
 	</ToolFiles>
@@ -112,6 +115,104 @@
 			/>
 		</Configuration>
 		<Configuration
+			Name="Release|x64"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="2"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="NDEBUG"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
+				TargetEnvironment="3"
+				TypeLibraryName=".\Release/hpcc_odbc_32.tlb"
+				HeaderFileName=""
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="2"
+				InlineFunctionExpansion="1"
+				AdditionalIncludeDirectories=".\src;..\WS-SQL;..\HPCC-Generated;..\HPCC-Platform\system\include;&quot;C:\Program Files\Progress\DataDirect\oaodbclocal72\ip\inc&quot;;..\HPCC-Platform\system\jlib;..\HPCC-Platform\esp\esplib;..\HPCC-Platform\system\xmllib;..\HPCC-Platform\esp\clients;..\HPCC-Platform\esp\bindings\SOAP\xpp;..\HPCC-Platform\esp\bindings;..\HPCC-Platform\system\security\shared;..\HPCC-Platform\esp\platform;"
+				PreprocessorDefinitions="NDEBUG;WIN32;_WINDOWS;_USRDLL;USE_DLL;IMPORTDLL;LINT_ARGS;_CRT_SECURE_NO_DEPRECATE"
+				StringPooling="true"
+				RuntimeLibrary="0"
+				EnableFunctionLevelLinking="true"
+				UsePrecompiledHeader="0"
+				PrecompiledHeaderFile=".\Release_x64/hpcc_odbc_32.pch"
+				AssemblerListingLocation=".\Release_x64/"
+				ObjectFile=".\Release_x64/"
+				ProgramDataBaseFileName=".\Release_x64/"
+				XMLDocumentationFileName="$(IntDir)\"
+				WarningLevel="3"
+				SuppressStartupBanner="true"
+				CompileAs="0"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="jlib.lib esphttp.lib oadsdam.lib"
+				OutputFile=".\Release_x64\hpcc_odbc_64.dll"
+				LinkIncremental="1"
+				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories="..\HPCC-Lib64\;C:\Program Files\Progress\DataDirect\oaodbclocal72\ip\lib"
+				ManifestFile="./Release_x64\$(TargetFileName).intermediate.manifest"
+				ModuleDefinitionFile=".\src\hpccodbc.def"
+				ProgramDatabaseFile=".\Release_x64/hpcc_odbc_32.pdb"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				ImportLibrary=".\Release_x64/hpcc_odbc_32.lib"
+				TargetMachine="17"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory=".\Debug"
 			IntermediateDirectory=".\Debug"
@@ -189,6 +290,111 @@
 				DataExecutionPrevention="0"
 				ImportLibrary=".\Debug/hpcc_odbc_32.lib"
 				TargetMachine="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug|x64"
+			OutputDirectory="$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="2"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+				CommandLine=""
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+				CommandLine=""
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				PreprocessorDefinitions="_DEBUG"
+				MkTypLibCompatible="true"
+				SuppressStartupBanner="true"
+				TargetEnvironment="3"
+				TypeLibraryName=".\Debug/hpcc_odbc_32.tlb"
+				HeaderFileName=""
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="0"
+				AdditionalIncludeDirectories=".\src;..\WS-SQL;..\HPCC-Generated;..\HPCC-Platform\system\include;&quot;C:\Program Files\Progress\DataDirect\oaodbclocal72\ip\inc&quot;;..\HPCC-Platform\system\jlib;..\HPCC-Platform\esp\esplib;..\HPCC-Platform\system\xmllib;..\HPCC-Platform\esp\clients;..\HPCC-Platform\esp\bindings\SOAP\xpp;..\HPCC-Platform\esp\bindings;..\HPCC-Platform\system\security\shared;..\HPCC-Platform\esp\platform;"
+				PreprocessorDefinitions="_DEBUG;LINT_ARGS;USE_DLL;IMPORTDLL;WIN32;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="1"
+				UsePrecompiledHeader="0"
+				PrecompiledHeaderFile=""
+				AssemblerListingLocation=".\Debug_x64/"
+				ObjectFile=".\Debug_x64/"
+				ProgramDataBaseFileName=".\Debug_x64/"
+				XMLDocumentationFileName="$(IntDir)\"
+				BrowseInformation="1"
+				BrowseInformationFile="$(IntDir)\"
+				WarningLevel="3"
+				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
+				CompileAs="0"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="_DEBUG"
+				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="jlib.lib esphttp.lib oadsdam.lib"
+				ShowProgress="0"
+				OutputFile=".\Debug_x64\hpcc_odbc_64.dll"
+				LinkIncremental="1"
+				SuppressStartupBanner="true"
+				AdditionalLibraryDirectories="..\HPCC-Lib64\;C:\Program Files\Progress\DataDirect\oaodbclocal72\ip\lib"
+				GenerateManifest="false"
+				ManifestFile=".\Debug_x64/$(TargetFileName).intermediate.manifest"
+				ModuleDefinitionFile=".\src\hpccodbc.def"
+				GenerateDebugInformation="true"
+				ProgramDatabaseFile=".\Debug_x64/hpcc_odbc_32.pdb"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+				ImportLibrary=".\Debug_x64/hpcc_odbc_32.lib"
+				TargetMachine="17"
+				CLRThreadAttribute="0"
 			/>
 			<Tool
 				Name="VCALinkTool"
