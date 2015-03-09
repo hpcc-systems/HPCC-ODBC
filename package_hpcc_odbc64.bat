@@ -1,6 +1,6 @@
 if "%PROGRESS_SDK64_DIR%".=="". set PROGRESS_SDK64_DIR=C:\Program Files\Progress\DataDirect\oaodbclocal72
 if "%HPCCODBC_SRC_DIR%".=="". set HPCCODBC_SRC_DIR=C:\hpcc\HPCC-ODBC
-if "%HPCC_BUILD_DIR_64%".=="". set HPCC_BUILD_DIR_64=C:\hpcc\HPCC-Lib
+if "%HPCC_BUILD_DIR_64%".=="". set HPCC_BUILD_DIR_64=C:\hpcc\HPCC-Lib64
 
 @echo on
 @echo ===============================================================================

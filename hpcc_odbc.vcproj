@@ -186,10 +186,10 @@
 				AdditionalLibraryDirectories="..\HPCC-Lib64\;C:\Program Files\Progress\DataDirect\oaodbclocal72\ip\lib"
 				ManifestFile="./Release_x64\$(TargetFileName).intermediate.manifest"
 				ModuleDefinitionFile=".\src\hpccodbc.def"
-				ProgramDatabaseFile=".\Release_x64/hpcc_odbc_32.pdb"
+				ProgramDatabaseFile=".\Release_x64/hpcc_odbc_64.pdb"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
-				ImportLibrary=".\Release_x64/hpcc_odbc_32.lib"
+				ImportLibrary=".\Release_x64/hpcc_odbc_64.lib"
 				TargetMachine="17"
 			/>
 			<Tool
@@ -393,10 +393,10 @@
 				ManifestFile=".\Debug_x64/$(TargetFileName).intermediate.manifest"
 				ModuleDefinitionFile=".\src\hpccodbc.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Debug_x64/hpcc_odbc_32.pdb"
+				ProgramDatabaseFile=".\Debug_x64/hpcc_odbc_64.pdb"
 				RandomizedBaseAddress="1"
 				DataExecutionPrevention="0"
-				ImportLibrary=".\Debug_x64/hpcc_odbc_32.lib"
+				ImportLibrary=".\Debug_x64/hpcc_odbc_64.lib"
 				TargetMachine="17"
 				CLRThreadAttribute="0"
 			/>
