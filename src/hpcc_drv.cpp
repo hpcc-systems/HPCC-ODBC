@@ -965,6 +965,31 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
 
     switch(iType)
     {
+    case DAMOBJ_TYPE_CATALOG:
+        {
+            tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV,"DAMOBJ_TYPE_CATALOG", ());
+            rc = dam_add_damobj_table(
+                pMemTree,               //XM_Tree *     pMemTree,
+                pList,                  //DAM_OBJ_LIST  pList,
+                pSearchObj,             //DAM_OBJ       pSearchObj,
+                HPCC_QUALIFIER_NAME,    //char   *      table_qualifier,
+                NULL,                   //char   *      table_owner,
+                NULL,                   //char   *      table_name,
+                NULL,                   //char   *      table_type, (TABLE == managed by IP)
+                NULL,                   //char   *      table_path,
+                NULL,                   //char   *      table_userdata
+                NULL,                   //char   *      function_support, IP_TABLE_SUPPORT_SELECT
+                NULL);                  //char   *      remarks
+            if (rc != DAM_SUCCESS)
+            {
+                StringBuffer err;
+                err.set("HPCC_Conn:OAIP_schema : dam_add_damobj_table failed");
+                dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
+                return DAM_FAILURE;
+            }
+            break;
+        }
+
     case DAMOBJ_TYPE_TABLE://retrieve schema of specified table (HPCC dataset)
         {
             damobj_table * pSearchTableObj = (damobj_table *)pSearchObj;
@@ -978,14 +1003,14 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                 if (pConnDA->pHPCCdb->getTableSchema(pSearchTableObj->table_name, _tables))
                 {
                     CTable &table = _tables.item(0);
-                    if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, (char*)table.queryOwner(), (char*)table.queryName()))
+                    if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, HPCC_CATALOG_NAME, (char*)table.queryName()))
                     {
                         rc = dam_add_damobj_table(
                             pMemTree,                   //XM_Tree *     pMemTree,
                             pList,                      //DAM_OBJ_LIST  pList,
                             pSearchObj,                 //DAM_OBJ       pSearchObj,
                             HPCC_QUALIFIER_NAME,        //char   *      table_qualifier,
-                            (char*)table.queryOwner(),  //char   *      table_owner,
+                            HPCC_CATALOG_NAME,          //char   *      table_owner,
                             (char*)table.queryName(),   //char   *      table_name,
                             "TABLE",                    //char   *      table_type, (TABLE == managed by IP)
                             NULL,                       //char   *      table_path,
@@ -1023,13 +1048,13 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                             pList,                     //DAM_OBJ_LIST  pList,
                             pSearchObj,                //DAM_OBJ       pSearchObj,
                             HPCC_QUALIFIER_NAME,       //char   *      table_qualifier,
-                            (char*)table.queryOwner(), //char   *      table_owner,
+                            HPCC_CATALOG_NAME,         //char   *      table_owner,
                             (char*)table.queryName(),  //char   *      table_name,
                             "TABLE",                   //char   *      table_type, (TABLE == managed by IP)
                             NULL,                      //char   *      table_path,
                             NULL,                      //char   *      table_userdata
                             NULL,                      //char   *      function_support, IP_TABLE_SUPPORT_SELECT
-                            NULL);                     //char   *      remarks
+                            (char*)table.queryDescription()); //char   *      remarks
                         if (rc != DAM_SUCCESS)
                         {
                             //Dont treat as failure, since others may succeed
@@ -1061,7 +1086,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                     for (aindex_t colIdx = 0; colIdx < numCols; colIdx++)//iterate over all columns in specified table
                     {
                         CColumn *col = table.queryColumn(colIdx);
-                        if (hpcc_is_matching_column(pSearchColumnObj, HPCC_QUALIFIER_NAME, (char*)table.queryOwner(), (char*)table.queryName()))
+                        if (hpcc_is_matching_column(pSearchColumnObj, HPCC_QUALIFIER_NAME, HPCC_CATALOG_NAME, (char*)table.queryName()))
                         {
                             populateOAtypes(col);//map HPCC data types to OpenAccess dam_add_damobj_column types
                             rc = dam_add_damobj_column(
@@ -1069,7 +1094,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                     pList,                  //DAM_OBJ_LIST pList,
                                     pSearchObj,             //DAM_OBJ      pSearchObj,
                                     HPCC_QUALIFIER_NAME,    //char   *     table_qualifier,
-                                    (char*)table.queryOwner(),//char   *     table_owner,
+                                    HPCC_CATALOG_NAME,      //char   *     table_owner,
                                     (char*)table.queryName(),//char  *      table_name
                                     (char*)col->m_name.get(),//char   *     column_name,
                                     col->m_iXOType,         //short        data_type,
@@ -1111,12 +1136,12 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                     {
                         CTable &table = _tables.item(tblIdx);
                         aindex_t numCols = table.queryNumColumns();
-                        const char * tableOwner = table.queryOwner();
+                        const char * tableOwner = HPCC_CATALOG_NAME;
                         const char * tableName = table.queryName();
                         for (aindex_t colIdx = 0; colIdx < numCols; colIdx++)//iterate over all columns in specified table
                         {
                             CColumn *col = table.queryColumn(colIdx);
-                            if (hpcc_is_matching_column(pSearchColumnObj, HPCC_QUALIFIER_NAME, (char*)table.queryOwner(), (char*)table.queryName()))
+                            if (hpcc_is_matching_column(pSearchColumnObj, HPCC_QUALIFIER_NAME, HPCC_CATALOG_NAME, (char*)table.queryName()))
                             {
                                 populateOAtypes(col);//map HPCC data types to OpenAccess dam_add_damobj_column types
                                 rc = dam_add_damobj_column(
@@ -1124,7 +1149,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                     pList,                  //DAM_OBJ_LIST pList,
                                     pSearchObj,             //DAM_OBJ      pSearchObj,
                                     HPCC_QUALIFIER_NAME,    //char   *     table_qualifier,
-                                    (char*)tableOwner,      //char   *     table_owner,
+                                    HPCC_CATALOG_NAME,      //char   *     table_owner,
                                     (char*)tableName,       //char  *      table_name
                                     (char*)col->m_name.get(),//char   *     column_name,
                                     col->m_iXOType,         //short        data_type,
