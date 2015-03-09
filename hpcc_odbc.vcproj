@@ -51,6 +51,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/bigobj"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories=".\src;..\WS-SQL;..\HPCC-Generated;..\HPCC-Platform\system\include;&quot;C:\Program Files (x86)\Progress\DataDirect\oaodbclocal72\ip\inc&quot;;..\HPCC-Platform\system\jlib;..\HPCC-Platform\esp\esplib;..\HPCC-Platform\system\xmllib;..\HPCC-Platform\esp\clients;..\HPCC-Platform\esp\bindings\SOAP\xpp;..\HPCC-Platform\esp\bindings;..\HPCC-Platform\system\security\shared;..\HPCC-Platform\esp\platform;"
@@ -147,6 +148,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/bigobj"
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories=".\src;..\WS-SQL;..\HPCC-Generated;..\HPCC-Platform\system\include;&quot;C:\Program Files\Progress\DataDirect\oaodbclocal72\ip\inc&quot;;..\HPCC-Platform\system\jlib;..\HPCC-Platform\esp\esplib;..\HPCC-Platform\system\xmllib;..\HPCC-Platform\esp\clients;..\HPCC-Platform\esp\bindings\SOAP\xpp;..\HPCC-Platform\esp\bindings;..\HPCC-Platform\system\security\shared;..\HPCC-Platform\esp\platform;"
@@ -247,6 +249,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/bigobj"
 				Optimization="0"
 				AdditionalIncludeDirectories=".\src;..\WS-SQL;..\HPCC-Generated;..\HPCC-Platform\system\include;&quot;C:\Program Files (x86)\Progress\DataDirect\oaodbclocal72\ip\inc&quot;;..\HPCC-Platform\system\jlib;..\HPCC-Platform\esp\esplib;..\HPCC-Platform\system\xmllib;..\HPCC-Platform\esp\clients;..\HPCC-Platform\esp\bindings\SOAP\xpp;..\HPCC-Platform\esp\bindings;..\HPCC-Platform\system\security\shared;..\HPCC-Platform\esp\platform;"
 				PreprocessorDefinitions="_DEBUG;LINT_ARGS;USE_DLL;IMPORTDLL;WIN32;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE"
@@ -348,6 +351,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="/bigobj"
 				Optimization="0"
 				AdditionalIncludeDirectories=".\src;..\WS-SQL;..\HPCC-Generated;..\HPCC-Platform\system\include;&quot;C:\Program Files\Progress\DataDirect\oaodbclocal72\ip\inc&quot;;..\HPCC-Platform\system\jlib;..\HPCC-Platform\esp\esplib;..\HPCC-Platform\system\xmllib;..\HPCC-Platform\esp\clients;..\HPCC-Platform\esp\bindings\SOAP\xpp;..\HPCC-Platform\esp\bindings;..\HPCC-Platform\system\security\shared;..\HPCC-Platform\esp\platform;"
 				PreprocessorDefinitions="_DEBUG;LINT_ARGS;USE_DLL;IMPORTDLL;WIN32;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE"
