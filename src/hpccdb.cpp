@@ -28,11 +28,71 @@
 
 static TM_ModuleCB  driver_tm_Hdle;//for logging
 
+
+//*******************************************************************
+//Shared schema cache singleton, persists even when connections close
+//*******************************************************************
+class CTable;
+class CTableSchemaCache : public CInterface, public IInterface
+{
+public:
+    IMPLEMENT_IINTERFACE;
+    static CTableSchemaCache * queryInstance();
+    virtual ~CTableSchemaCache() {}
+
+    void clearCache()
+    {
+        CriticalBlock b(m_crit);
+        m_tableCache.kill();
+        m_metaDataCacheComplete = false;
+    }
+
+    CTable * getValue(const char * tblName)
+    {
+        CriticalBlock b(m_crit);
+        return m_tableCache.getValue(tblName);
+    }
+
+    void setValue(const char * tblName, Owned<CTable> *tblEntry)
+    {
+        CriticalBlock b(m_crit);
+        m_tableCache.setValue(tblName, *tblEntry);
+    }
+
+    void setMetaDataCacheComplete(bool complete)//called when cache has the entire HPCC metadata, to ensure no more calls to WsSQL
+    {
+        CriticalBlock b(m_crit);
+        m_metaDataCacheComplete = complete;
+    }
+
+    bool queryMetaDataCacheComplete()
+    {
+        CriticalBlock b(m_crit);
+        return m_metaDataCacheComplete;
+    }
+
+protected:
+    CTableSchemaCache() { m_metaDataCacheComplete = false; }
+
+private:
+    //attributes
+    MapStringToMyClass<CTable>  m_tableCache;//Table Schema Cache
+    CriticalSection             m_crit;
+    bool                        m_metaDataCacheComplete;
+};
+
+CTableSchemaCache *CTableSchemaCache::queryInstance()
+{
+    static CTableSchemaCache Instance;
+    return &Instance;
+}
+
+
 /************************************************************************
 Class:  HPCCdb
 *************************************************************************/
 
-HPCCdb::HPCCdb(TM_ModuleCB tmHandle, const char * _protocol, const char * _wsSqlPort, const char * _user, const char * _pwd, const char * _wssqlIP, const char * _targetCluster, const char * _defaultQuerySet, aindex_t _maxFetchRowCount)
+HPCCdb::HPCCdb(TM_ModuleCB tmHandle, const char * _protocol, const char * _wsSqlPort, const char * _user, const char * _pwd, const char * _wssqlIP, const char * _targetCluster, const char * _defaultQuerySet, aindex_t _maxFetchRowCount, aindex_t _cacheTimeout)
 {
     tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:call to HPCCdb::HPCCdb()\n", ());
     driver_tm_Hdle = tmHandle;
@@ -47,8 +107,9 @@ HPCCdb::HPCCdb(TM_ModuleCB tmHandle, const char * _protocol, const char * _wsSql
     m_targetCluster.set(_targetCluster);
     m_defaultQuerySet.set(_defaultQuerySet);
     m_maxFetchRowCount = _maxFetchRowCount;
+    m_cacheTimeout = _cacheTimeout;
 
-    tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn: protocol='%s', wsSqlPort='%s', user='%s', wssqlIP='%s', targetCluster='%s', defaultQuerySet='%s', maxFetchRowCount='%d'\n", (_protocol,_wsSqlPort,_user,_wssqlIP,_targetCluster,_defaultQuerySet,_maxFetchRowCount));
+    tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn: protocol='%s', wsSqlPort='%s', user='%s', wssqlIP='%s', targetCluster='%s', defaultQuerySet='%s', maxFetchRowCount='%d', cacheTimeout=%d\n", (_protocol,_wsSqlPort,_user,_wssqlIP,_targetCluster,_defaultQuerySet,_maxFetchRowCount,_cacheTimeout));
 
     //Create connection object
     m_clientWs_sql.setown(createwssqlClient());
@@ -272,99 +333,117 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
 {
     tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:call to HPCCdb::getTableSchema('%s')\n", (_tableFilter));
 
+    CTableSchemaCache * pCache = CTableSchemaCache::queryInstance();
+
+    static time_t m_lastCacheClear = 0;
+    if ((msTick() - m_lastCacheClear) >= (queryCacheTimeout() * 60 * 1000))
+    {
+        pCache->clearCache();
+        m_lastCacheClear = msTick();
+    }
+
     //First look in the schemaCache
     if (_tableFilter)
     {
-        CTable * cachedEntry = m_tableSchemaCache.getValue(_tableFilter);
+        CTable * cachedEntry = pCache->getValue(_tableFilter);
         if (cachedEntry)
         {
             tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:using cached table schema info\n", ());
             _tables.append(*(LINK(cachedEntry)));
             return true;
         }
+        else if (pCache->queryMetaDataCacheComplete())//we have everything, and it's not here
+            return false;
     }
 
-    //Call out to ws_sql to get schema
-    Owned<IClientGetDBMetaDataRequest> req;
-    Owned<IClientGetDBMetaDataResponse> resp;
-
-    req.setown( createClientGetDBMetaDataRequest());
-    req->setIncludeTables(true);
-    req->setTableFilter(_tableFilter);
-    req->setIncludeStoredProcedures(false);
-    CriticalBlock b(crit);
-    try
+    if (!pCache->queryMetaDataCacheComplete())//
     {
-        tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:calling ws_sql.GetDBMetaData()...\n", ());
-        resp.setown(m_clientWs_sql->GetDBMetaData(req));//calls ws_sql
-        tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:complete\n", ());
-    }
+        //Call out to ws_sql to get schema
+        Owned<IClientGetDBMetaDataRequest> req;
+        Owned<IClientGetDBMetaDataResponse> resp;
 
-    catch (IException* e)
-    {
-        StringBuffer sb;
-        e->errorMessage(sb);
-
-        hpccErrors.setf("HPCC_Conn:Error calling ws_sql : '%s'\n", (sb.str()));
-        tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "%s", (sb.str()));
-        return false;
-    }
-
-    catch (...)
-    {
-        hpccErrors.setf("Exception thrown calling ws_sql");
-        tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Error calling ws_sql\n", ());
-        return false;
-    }
-
-    StringBuffer sbErrors;
-    if (checkForTopLevelErrors(resp->getExceptions(), sbErrors))
-        return false;
-
-    if (!_tableFilter)
-        m_tableSchemaCache.kill();//empty cache
-
-    //--------------------
-    //Tables
-    //--------------------
-    IArrayOf<IConstHPCCTable> &tables = resp->getTables();
-    ForEachItemIn(tableIdx, tables)//process all tables
-    {
-        //Add all found tables and their columns to the schemaCache
-        CHPCCTable &tableItem = (CHPCCTable &)tables.item(tableIdx);
-        tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "HPCC_Conn:Found table '%s'\n", (tableItem.getName()));
-        Owned<CTable> tblEntry;
-        tblEntry.setown(new CTable(tableItem.getName(), tableItem.getDescription(), tableItem.getOwner()));
-#ifdef _WIN32
-        OutputDebugString(tableItem.getName());OutputDebugString("\n");
-#endif
-        IArrayOf<IConstHPCCColumn> &columns = tableItem.getColumns();
-        ForEachItemIn(columnsIdx, columns)//process all columns in given table
+        req.setown( createClientGetDBMetaDataRequest());
+        req->setIncludeTables(true);
+        req->setTableFilter(_tableFilter);
+        req->setIncludeStoredProcedures(false);
+        CriticalBlock b(crit);
+        try
         {
-            CHPCCColumn &columnItem = (CHPCCColumn &)columns.item(columnsIdx);
-            Owned<CColumn> columnEntry;
-            tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "   HPCC:Found column '%s'(%s)\n", (columnItem.getName(),columnItem.getType()));
-            columnEntry.setown(new CColumn(columnItem.getName()));
-#ifdef _WIN32
-            StringBuffer sb;
-            sb.appendf("\t%s (%s)\n",columnItem.getName(), columnItem.getType());
-            OutputDebugString(sb.str());
-#endif
-            columnEntry->m_hpccType.set(columnItem.getType());
-
-            //Add to column array
-            tblEntry->addColumn(LINK(columnEntry));
+            tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:calling ws_sql.GetDBMetaData()...\n", ());
+            resp.setown(m_clientWs_sql->GetDBMetaData(req));//calls ws_sql
+            tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:complete\n", ());
         }
-        m_tableSchemaCache.setValue(tableItem.getName(), tblEntry);//save in the schemaCache
-        if (_tableFilter == NULL)
+
+        catch (IException* e)
         {
-            _tables.append(*(LINK(tblEntry)));
+            StringBuffer sb;
+            e->errorMessage(sb);
+
+            hpccErrors.setf("HPCC_Conn:Error calling ws_sql : '%s'\n", (sb.str()));
+            tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "%s", (sb.str()));
+            return false;
+        }
+
+        catch (...)
+        {
+            hpccErrors.setf("Exception thrown calling ws_sql");
+            tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Error calling ws_sql\n", ());
+            return false;
+        }
+
+        StringBuffer sbErrors;
+        if (checkForTopLevelErrors(resp->getExceptions(), sbErrors))
+            return false;
+
+        if (!_tableFilter)
+        {
+            pCache->clearCache();//empty cache
+            pCache->setMetaDataCacheComplete(true);
+            m_lastCacheClear = msTick();//reset cache expiration
+        }
+
+        //--------------------
+        //Tables
+        //--------------------
+        IArrayOf<IConstHPCCTable> &tables = resp->getTables();
+        ForEachItemIn(tableIdx, tables)//process all tables
+        {
+            //Add all found tables and their columns to the schemaCache
+            CHPCCTable &tableItem = (CHPCCTable &)tables.item(tableIdx);
+            tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "HPCC_Conn:Found table '%s'\n", (tableItem.getName()));
+            Owned<CTable> tblEntry;
+            tblEntry.setown(new CTable(tableItem.getName(), tableItem.getDescription(), tableItem.getOwner()));
+#ifdef _WIN32
+            OutputDebugString(tableItem.getName());OutputDebugString("\n");
+#endif
+            IArrayOf<IConstHPCCColumn> &columns = tableItem.getColumns();
+            ForEachItemIn(columnsIdx, columns)//process all columns in given table
+            {
+                CHPCCColumn &columnItem = (CHPCCColumn &)columns.item(columnsIdx);
+                Owned<CColumn> columnEntry;
+                tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "   HPCC:Found column '%s'(%s)\n", (columnItem.getName(),columnItem.getType()));
+                columnEntry.setown(new CColumn(columnItem.getName()));
+#ifdef _WIN32
+                StringBuffer sb;
+                sb.appendf("\t%s (%s)\n",columnItem.getName(), columnItem.getType());
+                OutputDebugString(sb.str());
+#endif
+                columnEntry->m_hpccType.set(columnItem.getType());
+
+                //Add to column array
+                tblEntry->addColumn(LINK(columnEntry));
+            }
+            pCache->setValue(tableItem.getName(), &tblEntry);//save in the schemaCache
+            if (_tableFilter == NULL)
+            {
+                _tables.append(*(LINK(tblEntry)));
+            }
         }
     }
 
     if (_tableFilter)
     {
-        CTable * cachedEntry = m_tableSchemaCache.getValue(_tableFilter);
+        CTable * cachedEntry = pCache->getValue(_tableFilter);
         if (cachedEntry)
         {
             _tables.append(*(LINK(cachedEntry)));
@@ -455,7 +534,8 @@ bool HPCCdb::executeSQL(const char * sql, const char * targetQuerySet, StringBuf
 
     if (targetQuerySet && *targetQuerySet)
         req->setTargetQuerySet(targetQuerySet);
-    req->setTargetCluster(m_targetCluster);
+    if (strnicmp(sql, "call", 4))
+        req->setTargetCluster(m_targetCluster);//not allowed on CALL
 
     CriticalBlock b(crit);
     try

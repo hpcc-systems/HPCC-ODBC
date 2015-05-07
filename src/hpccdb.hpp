@@ -180,9 +180,9 @@ private:
     StringAttr                  m_defaultQuerySet;//thor, roxie, thor_roxie, etc
     StringAttr                  m_FullHPCCVersion;
     aindex_t                    m_maxFetchRowCount;//max num rows to fetch in a single retrieval
+    aindex_t                    m_cacheTimeout;//in minutes
 
     Owned<IClientwssql>         m_clientWs_sql;//ws_sql client
-    MapStringToMyClass<CTable>  m_tableSchemaCache;
 
     vector<CColumn*>            m_hpccColPtrs;  //Ordered array of pointers to output CColumns that reside in m_schemaCache
 
@@ -203,7 +203,7 @@ private:
     bool        checkForErrors(const IMultiException & _exc, IConstECLWorkunit & _wu, StringBuffer & _sbErrors);
 
 public:
-    HPCCdb(TM_ModuleCB tmHandle, const char * _protocol, const char * _wsSqlPort, const char * _user, const char * _pwd, const char * _wssqlIP, const char * _targetCluster, const char * _defaultQuerySet, aindex_t _maxFetchRowCount);
+    HPCCdb(TM_ModuleCB tmHandle, const char * _protocol, const char * _wsSqlPort, const char * _user, const char * _pwd, const char * _wssqlIP, const char * _targetCluster, const char * _defaultQuerySet, aindex_t _maxFetchRowCount, aindex_t _cacheTimeout);
     virtual ~HPCCdb();
 
     const char * queryUserName()                            { return m_userName; }
@@ -216,6 +216,7 @@ public:
     const char *queryTargetCluster()                        { return m_targetCluster; }
     const char *queryDefaultQuerySet()                      { return m_defaultQuerySet; }
     aindex_t    queryMaxFetchRowCount()                     { return m_maxFetchRowCount; }
+    aindex_t    queryCacheTimeout()                         { return m_cacheTimeout; }
 
     const char *queryCurrentQuerySet()                      { return m_currentQuerySet.get(); }
     void        setCurrentQuerySet(const char * qs)         { m_currentQuerySet.set(qs); }
