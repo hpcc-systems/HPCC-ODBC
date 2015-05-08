@@ -16,7 +16,7 @@ dsaa ${ServiceName_C} HPCC-ODBC64_ConnDS DataSourceIPProperties HPCC-ODBC64_Conn
 
 saa ${ServiceName_C}  ServiceEnvironmentVariable "PATH=${InstallDir}\ip\bin"
 
-dsaa ${ServiceName_C} HPCC-ODBC64_ConnDS DataSourceIPCustomProperties PROTOCOL=http;WSSQLPORT=8510;WSSQLIP=127.0.0.1;CLUSTER=hthor;DEFAULTQUERYSET=thor;MAXROWBUFFCOUNT=10000;
+dsaa ${ServiceName_C} HPCC-ODBC64_ConnDS DataSourceIPCustomProperties PROTOCOL=http;WSSQLPORT=8510;WSSQLIP=127.0.0.1;CLUSTER=hthor;DEFAULTQUERYSET=thor;MAXROWBUFFCOUNT=10000;CACHETIMEOUT=30;
 
 e "SaveConfig" 
 SaveConfig

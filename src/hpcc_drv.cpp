@@ -105,7 +105,7 @@ const char * pszWSSQLIP         = "WSSQLIP=";
 const char * pszCLUSTER         = "CLUSTER=";
 const char * pszDEFAULTQUERYSET = "DEFAULTQUERYSET=";
 const char * pszMAXROWBUFFCOUNT = "MAXROWBUFFCOUNT=";
-
+const char * pszCACHETIMEOUT    = "CACHETIMEOUT=";
 
 /************************************************************************
 Function:       OAIP_init()
@@ -360,13 +360,15 @@ int             OAIP_connect(DAM_HDBC dam_hdbc, IP_HENV henv,
         defaultQuerySet.set("roxie");
 
     //Isolate Default QuerySet
-    aindex_t maxFetchRowCount;
     p = sl_strstr(sIPCustomProperties, pszMAXROWBUFFCOUNT);
-    if (p)
-        maxFetchRowCount = p ? atol(p + strlen(pszMAXROWBUFFCOUNT)) : -1;//-1 if no limit
+    aindex_t maxFetchRowCount = p ? atol(p + strlen(pszMAXROWBUFFCOUNT)) : -1;//-1 if no limit
+
+    //Isolate Cache Timeout
+    p = sl_strstr(sIPCustomProperties, pszCACHETIMEOUT);
+    aindex_t cacheTimeout = p ? atol(p + strlen(pszCACHETIMEOUT)) : 30;//30 minutes if not specified
 
     /* initialize the IP data source */
-    pConnDA->pHPCCdb = new HPCCdb(hpcc_tm_Handle, protocol.str(), wssqlPort.str(), sUserName, sPassword, wssqlIP.str(), targetCluster.str(), defaultQuerySet.str(), maxFetchRowCount);
+    pConnDA->pHPCCdb = new HPCCdb(hpcc_tm_Handle, protocol.str(), wssqlPort.str(), sUserName, sPassword, wssqlIP.str(), targetCluster.str(), defaultQuerySet.str(), maxFetchRowCount, cacheTimeout);
     if (!pConnDA->pHPCCdb->getHPCCDBSystemInfo())
     {
         delete pConnDA->pHPCCdb;

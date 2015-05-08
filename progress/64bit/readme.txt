@@ -30,7 +30,7 @@ Once the plug-in is installed, you must set the IP address of the HPCC WsSQL ser
 	1) In the MMC console, expand the "Console Root" > "Manager" >  "C:\Program Files\HPCCSystems\HPCC-ODBC Connector\cfg\oadm.ini" > "Services" > "HPCC-ODBC_ConnSvc" > "Data Source Settings" > "HPCC-ODBC_ConnDS"
 	2) Select "IP Parameters"
 	3) Double-click the "DataSourceIPCustomProperties" and edit any of the values in the key/value pairs listed to settings that you prefer. 
-	     The default settings are : PROTOCOL=http;WSSQLPORT=8510;WSSQLIP=127.0.0.1;CLUSTER=hthor;DEFAULTQUERYSET=thor;MAXROWBUFFCOUNT=10000;
+           The default settings are : PROTOCOL=http;WSSQLPORT=8510;WSSQLIP=127.0.0.1;CLUSTER=hthor;DEFAULTQUERYSET=thor;MAXROWBUFFCOUNT=10000;CACHETIMEOUT=30;
 	4) You must change the WSSQLIP value to the IP address of the HPCC ESP Server to which the WsSQL service is bound.
 	5) Ensure the WSSQLPORT is correct. Check with your HPCC system admin.
 	6) Select OK, the "File > "Save" and agree to all the prompts
