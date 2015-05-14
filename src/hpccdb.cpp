@@ -53,15 +53,8 @@ public:
         HashIterator iter(m_tableCache);
         if (bExact)
         {
-            ForEach(iter)
-            {
-                CTable *tbl = m_tableCache.mapToValue(&iter.query());
-                if (0 == strcmp(tblFilter, tbl->queryName()))
-                {
-                    _tables.append(*(LINK(tbl)));
-                    break;
-                }
-            }
+            CTable *tbl = m_tableCache.getValue(tblFilter);
+            _tables.append(*(LINK(tbl)));
         }
         else
         {
@@ -69,7 +62,7 @@ public:
             ForEach(iter)
             {
                 CTable *tbl = m_tableCache.mapToValue(&iter.query());
-                if (0 == strncmp(tblFilter, tbl->queryName(), filterLen))
+                if (0 == strnicmp(tblFilter, tbl->queryName(), filterLen))
                     _tables.append(*(LINK(tbl)));
             }
         }
@@ -376,19 +369,26 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
         pCache->clearCache();
         m_lastCacheClear = msTick();
     }
-
+    StringBuffer sbTableFilter;
     if (_tableFilter && !*_tableFilter)
         _tableFilter = NULL;
+    else
+        sbTableFilter.set(_tableFilter);
 
     //Allow backend to handle wildcards
     bool bIsWildcard;
-    if (_tableFilter && strchr(_tableFilter, '*'))
+    if (_tableFilter && (strchr(_tableFilter, '*') || strchr(_tableFilter, '%')))
     {
         //I dont think this code is reachable because I have never seen a wildcard passed in. Instead the client
         //calls us to get everything and they filter out nonmatches. However, just in case, here it is...
         bIsWildcard = true;
         pCache->clearCache();
         m_lastCacheClear = msTick();
+        for (char * p = (char *)sbTableFilter.str(); *p; p++)
+        {
+            if (*p == '%')
+                *p = '*';//wssql only recognizes * as wildcard
+        }
     }
     else
         bIsWildcard = false;
@@ -396,7 +396,7 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
     //First look in the schemaCache
     if (_tableFilter)
     {
-        if (pCache->getMatchingTables(_tableFilter, _tables, true))
+        if (pCache->getMatchingTables(sbTableFilter.str(), _tables, true))
         {
             tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:using cached table schema info\n", ());
             return true;
@@ -413,7 +413,7 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
 
         req.setown( createClientGetDBMetaDataRequest());
         req->setIncludeTables(true);
-        req->setTableFilter(_tableFilter);
+        req->setTableFilter(sbTableFilter.str());
         req->setIncludeStoredProcedures(false);
         CriticalBlock b(crit);
         try
@@ -488,10 +488,10 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
 
     if (_tableFilter && !bIsWildcard)
     {
-        if (pCache->getMatchingTables(_tableFilter, _tables, true))
+        if (pCache->getMatchingTables(sbTableFilter.str(), _tables, true))
             return true;
         else
-            tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Could not find table matching '%s'\n", (_tableFilter));
+            tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Could not find table matching '%s'\n", (sbTableFilter.str()));
     }
     else
     {

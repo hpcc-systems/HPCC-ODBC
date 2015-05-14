@@ -1006,10 +1006,11 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                 {
                     //I don't think there will ever be more than one table matching
                     //the given table_name, but looping on it just in case
-                    ForEachItemIn(i, _tables)
+                    ForEachItemIn(idxTbl, _tables)
                     {
-                        CTable &table = _tables.item(i);
-                        if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, HPCC_CATALOG_NAME, (char*)table.queryName()))
+                        CTable &table = _tables.item(idxTbl);
+                        char * tableName = (char*)table.queryName();
+                        if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, HPCC_CATALOG_NAME, tableName))
                         {
                             rc = dam_add_damobj_table(
                                 pMemTree,                   //XM_Tree *     pMemTree,
@@ -1017,7 +1018,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                                 pSearchObj,                 //DAM_OBJ       pSearchObj,
                                 HPCC_QUALIFIER_NAME,        //char   *      table_qualifier,
                                 HPCC_CATALOG_NAME,          //char   *      table_owner,
-                                (char*)table.queryName(),   //char   *      table_name,
+                                tableName,                  //char   *      table_name,
                                 "TABLE",                    //char   *      table_type, (TABLE == managed by IP)
                                 NULL,                       //char   *      table_path,
                                 NULL,                       //char   *      table_userdata
@@ -1409,7 +1410,7 @@ static int      hpcc_is_matching_table(damobj_table *pSearchObj,
         if (DAMOBJ_IS_SET(pSearchObj->table_name_len) && sl_stricmp(pSearchObj->table_name, table_name))
             return FALSE;
     }
-   else
+    else
     {
         /* match the search pattern */
         if (DAMOBJ_IS_SET(pSearchObj->table_qualifier_len) && dam_strlikecmp(pSearchObj->table_qualifier, table_qualifier))
