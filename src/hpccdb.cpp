@@ -47,13 +47,48 @@ public:
         m_metaDataCacheComplete = false;
     }
 
-    CTable * getValue(const char * tblName)
+    aindex_t getMatchingTables(const char * tblFilter, IArrayOf<CTable> &_tables, bool bExact)
     {
         CriticalBlock b(m_crit);
-        return m_tableCache.getValue(tblName);
+        HashIterator iter(m_tableCache);
+        if (bExact)
+        {
+            ForEach(iter)
+            {
+                CTable *tbl = m_tableCache.mapToValue(&iter.query());
+                if (0 == strcmp(tblFilter, tbl->queryName()))
+                {
+                    _tables.append(*(LINK(tbl)));
+                    break;
+                }
+            }
+        }
+        else
+        {
+            unsigned filterLen = strlen(tblFilter);
+            ForEach(iter)
+            {
+                CTable *tbl = m_tableCache.mapToValue(&iter.query());
+                if (0 == strncmp(tblFilter, tbl->queryName(), filterLen))
+                    _tables.append(*(LINK(tbl)));
+            }
+        }
+        return _tables.ordinality();
     }
 
-    void setValue(const char * tblName, Owned<CTable> *tblEntry)
+    aindex_t getAllCachedTables(IArrayOf<CTable> &_tables)
+    {
+        CriticalBlock b(m_crit);
+        HashIterator iter(m_tableCache);
+        ForEach(iter)
+        {
+            CTable *tbl = m_tableCache.mapToValue(&iter.query());
+            _tables.append(*(LINK(tbl)));
+        }
+        return _tables.ordinality();
+    }
+
+    void addTable(const char * tblName, Owned<CTable> *tblEntry)
     {
         CriticalBlock b(m_crit);
         m_tableCache.setValue(tblName, *tblEntry);
@@ -333,8 +368,8 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
 {
     tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:call to HPCCdb::getTableSchema('%s')\n", (_tableFilter));
 
+    //Cache management
     CTableSchemaCache * pCache = CTableSchemaCache::queryInstance();
-
     static time_t m_lastCacheClear = 0;
     if ((msTick() - m_lastCacheClear) >= (queryCacheTimeout() * 60 * 1000))
     {
@@ -342,14 +377,28 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
         m_lastCacheClear = msTick();
     }
 
+    if (_tableFilter && !*_tableFilter)
+        _tableFilter = NULL;
+
+    //Allow backend to handle wildcards
+    bool bIsWildcard;
+    if (_tableFilter && strchr(_tableFilter, '*'))
+    {
+        //I dont think this code is reachable because I have never seen a wildcard passed in. Instead the client
+        //calls us to get everything and they filter out nonmatches. However, just in case, here it is...
+        bIsWildcard = true;
+        pCache->clearCache();
+        m_lastCacheClear = msTick();
+    }
+    else
+        bIsWildcard = false;
+
     //First look in the schemaCache
     if (_tableFilter)
     {
-        CTable * cachedEntry = pCache->getValue(_tableFilter);
-        if (cachedEntry)
+        if (pCache->getMatchingTables(_tableFilter, _tables, true))
         {
             tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:using cached table schema info\n", ());
-            _tables.append(*(LINK(cachedEntry)));
             return true;
         }
         else if (pCache->queryMetaDataCacheComplete())//we have everything, and it's not here
@@ -421,7 +470,7 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
             {
                 CHPCCColumn &columnItem = (CHPCCColumn &)columns.item(columnsIdx);
                 Owned<CColumn> columnEntry;
-                tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "   HPCC:Found column '%s'(%s)\n", (columnItem.getName(),columnItem.getType()));
+                tm_trace(driver_tm_Hdle, UL_TM_F_TRACE, "   HPCC_Conn:Found column '%s'(%s)\n", (columnItem.getName(),columnItem.getType()));
                 columnEntry.setown(new CColumn(columnItem.getName()));
 #ifdef _WIN32
                 StringBuffer sb;
@@ -433,26 +482,20 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
                 //Add to column array
                 tblEntry->addColumn(LINK(columnEntry));
             }
-            pCache->setValue(tableItem.getName(), &tblEntry);//save in the schemaCache
-            if (_tableFilter == NULL)
-            {
-                _tables.append(*(LINK(tblEntry)));
-            }
+            pCache->addTable(tableItem.getName(), &tblEntry);//save in the schemaCache
         }
     }
 
-    if (_tableFilter)
+    if (_tableFilter && !bIsWildcard)
     {
-        CTable * cachedEntry = pCache->getValue(_tableFilter);
-        if (cachedEntry)
-        {
-            _tables.append(*(LINK(cachedEntry)));
+        if (pCache->getMatchingTables(_tableFilter, _tables, true))
             return true;
-        }
+        else
+            tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Could not find table matching '%s'\n", (_tableFilter));
     }
     else
     {
-        if (!_tables.empty())
+        if (pCache->getAllCachedTables(_tables))
             return true;
         else
             tm_trace(driver_tm_Hdle, UL_TM_ERRORS, "HPCC_Conn:Could not find any tables\n", ());
@@ -527,7 +570,6 @@ bool HPCCdb::executeSQL(const char * sql, const char * targetQuerySet, StringBuf
     req.setown( createClientExecuteSQLRequest());
     req->setSqlText(sql);
     req->setSuppressXmlSchema(true);
-
     req->setResultWindowStart(0);
     if (m_maxFetchRowCount != -1)
         req->setResultWindowCount(m_maxFetchRowCount);
