@@ -376,22 +376,21 @@ bool HPCCdb::getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables
         sbTableFilter.set(_tableFilter);
 
     //Allow backend to handle wildcards
-    bool bIsWildcard;
-    if (_tableFilter && (strchr(_tableFilter, '*') || strchr(_tableFilter, '%')))
+    bool bIsWildcard = false;
+    for (char * p = (char *)sbTableFilter.str(); *p; p++)
     {
-        //I dont think this code is reachable because I have never seen a wildcard passed in. Instead the client
-        //calls us to get everything and they filter out nonmatches. However, just in case, here it is...
-        bIsWildcard = true;
-        pCache->clearCache();
-        m_lastCacheClear = msTick();
-        for (char * p = (char *)sbTableFilter.str(); *p; p++)
+        if (*p == '*' || *p == '%')
         {
+            if (!bIsWildcard)
+            {
+                bIsWildcard = true;
+                pCache->clearCache();
+                m_lastCacheClear = msTick();
+            }
             if (*p == '%')
                 *p = '*';//wssql only recognizes * as wildcard
         }
     }
-    else
-        bIsWildcard = false;
 
     //First look in the schemaCache
     if (_tableFilter)
