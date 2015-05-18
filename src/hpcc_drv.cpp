@@ -995,7 +995,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
     case DAMOBJ_TYPE_TABLE://retrieve schema of specified table (HPCC dataset)
         {
             damobj_table * pSearchTableObj = (damobj_table *)pSearchObj;
-            if(pSearchTableObj)
+            if(pSearchTableObj && pSearchTableObj->table_name[0])
             {
                 tm_trace(hpcc_tm_Handle,UL_TM_MAJOR_EV,"HPCC_Conn:Dynamic Schema for table :(%s.%s.%s) is being requested.  Table Schema requested with %s\n",
                     (pSearchTableObj->table_qualifier, pSearchTableObj->table_owner, pSearchTableObj->table_name,
@@ -1193,7 +1193,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
 
             pSearchProcObj = (damobj_proc *)pSearchObj;
             // check what information is being requested even if we do not use the info
-            if (pSearchProcObj)
+            if (pSearchProcObj && pSearchProcObj->name[0])
             {
                 tm_trace(hpcc_tm_Handle, UL_TM_MAJOR_EV, "HPCC_Conn:Dynamic Schema for Procedure:(%s.%s.%s) is being requested\n",
                     (DAMOBJ_IS_SET(pSearchProcObj->qualifier_len) ? pSearchProcObj->qualifier : "",
@@ -1273,13 +1273,30 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
         {
             damobj_proc_column    *pSearchProcColumnObj;
             pSearchProcColumnObj = (damobj_proc_column *)pSearchObj;
-            if (pSearchProcColumnObj)
+            if (pSearchProcColumnObj && pSearchProcColumnObj->name[0])
             {
-                CMyQuerySetQuery * pQuery = pConnDA->pHPCCdb->queryStoredProcedure(pConnDA->pHPCCdb->queryCurrentQuerySet(), pSearchProcColumnObj->name);//find specified stored procedure
+
+                //See if its in the 'QuerySet.QueryName' format
+                StringBuffer sbQS;
+                StringBuffer sbQN;
+                char * qs = strchr(pSearchProcColumnObj->name, '.');
+                if (qs)
+                {
+                    sbQS.set(pSearchProcColumnObj->name);
+                    sbQS.remove(qs - pSearchProcColumnObj->name, sbQS.length() - (qs - pSearchProcColumnObj->name) + 1);
+                    sbQN.set(qs + 1);
+                }
+                else
+                {
+                    sbQS.set((char*)pConnDA->pHPCCdb->queryCurrentQuerySet());
+                    sbQN.set(pSearchProcColumnObj->name);
+                }
+
+                CMyQuerySetQuery * pQuery = pConnDA->pHPCCdb->queryStoredProcedure(sbQS.str(), sbQN.str());//find specified stored procedure
                 if (!pQuery)
                 {
                     StringBuffer err;
-                    err.setf("HPCC_Conn:OAIP_schema : Query '%s' not found", pSearchProcColumnObj->name);
+                    err.setf("HPCC_Conn:OAIP_schema : Query '%s.%s' not found",sbQS.str(), sbQN.str());
                     dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
                     return DAM_FAILURE;
                 }
