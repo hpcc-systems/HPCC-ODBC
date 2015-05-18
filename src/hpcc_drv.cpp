@@ -193,13 +193,13 @@ int             OAIP_getInfo(IP_HENV ip_henv, IP_HDBC ip_hdbc, IP_HSTMT hstmt, i
         break;
 
     case IP_INFO_SUPPORT_SCHEMA_SEARCH_PATTERN:
-        tm_trace(hpcc_tm_Handle, UL_TM_MAJOR_EV, "HPCC_Conn(): IP_INFO_SUPPORT_SCHEMA_SEARCH_PATTERN=%d\n", (sFunctionName, bAllowSchemaSearchPattern));
+        tm_trace(hpcc_tm_Handle, UL_TM_MAJOR_EV, "HPCC_Conn: IP_INFO_SUPPORT_SCHEMA_SEARCH_PATTERN=%d\n", (sFunctionName, bAllowSchemaSearchPattern));
         *pShortIntValue = (short)bAllowSchemaSearchPattern;
         break;
 
     default:
         /* we will not report it as error, since the ip_getInfo() is an optional implementation */
-        tm_trace(hpcc_tm_Handle, UL_TM_TRIVIA, "HPCC_Conn(): Information type:%d is out of range\n", (sFunctionName, iInfoType));
+        tm_trace(hpcc_tm_Handle, UL_TM_TRIVIA, "HPCC_Conn: Information type:%d is out of range\n", (sFunctionName, iInfoType));
         return DAM_NOT_AVAILABLE;
         break;
     }
@@ -1004,27 +1004,33 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                 IArrayOf<CTable> _tables;
                 if (pConnDA->pHPCCdb->getTableSchema(pSearchTableObj->table_name, _tables))
                 {
-                    CTable &table = _tables.item(0);
-                    if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, HPCC_CATALOG_NAME, (char*)table.queryName()))
+                    //I don't think there will ever be more than one table matching
+                    //the given table_name, but looping on it just in case
+                    ForEachItemIn(idxTbl, _tables)
                     {
-                        rc = dam_add_damobj_table(
-                            pMemTree,                   //XM_Tree *     pMemTree,
-                            pList,                      //DAM_OBJ_LIST  pList,
-                            pSearchObj,                 //DAM_OBJ       pSearchObj,
-                            HPCC_QUALIFIER_NAME,        //char   *      table_qualifier,
-                            HPCC_CATALOG_NAME,          //char   *      table_owner,
-                            (char*)table.queryName(),   //char   *      table_name,
-                            "TABLE",                    //char   *      table_type, (TABLE == managed by IP)
-                            NULL,                       //char   *      table_path,
-                            NULL,                       //char   *      table_userdata
-                            NULL,                       //char   *      function_support, IP_TABLE_SUPPORT_SELECT
-                            (char*)table.queryDescription()); //char   *      remarks
-                        if (rc != DAM_SUCCESS)
+                        CTable &table = _tables.item(idxTbl);
+                        char * tableName = (char*)table.queryName();
+                        if (hpcc_is_matching_table(pSearchTableObj, HPCC_QUALIFIER_NAME, HPCC_CATALOG_NAME, tableName))
                         {
-                            StringBuffer err;
-                            err.setf("HPCC_Conn:OAIP_schema : dam_add_damobj_table failed on '%s'",(char*)table.queryName());
-                            dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
-                            return DAM_FAILURE;
+                            rc = dam_add_damobj_table(
+                                pMemTree,                   //XM_Tree *     pMemTree,
+                                pList,                      //DAM_OBJ_LIST  pList,
+                                pSearchObj,                 //DAM_OBJ       pSearchObj,
+                                HPCC_QUALIFIER_NAME,        //char   *      table_qualifier,
+                                HPCC_CATALOG_NAME,          //char   *      table_owner,
+                                tableName,                  //char   *      table_name,
+                                "TABLE",                    //char   *      table_type, (TABLE == managed by IP)
+                                NULL,                       //char   *      table_path,
+                                NULL,                       //char   *      table_userdata
+                                NULL,                       //char   *      function_support, IP_TABLE_SUPPORT_SELECT
+                                (char*)table.queryDescription()); //char   *      remarks
+                            if (rc != DAM_SUCCESS)
+                            {
+                                StringBuffer err;
+                                err.setf("HPCC_Conn:OAIP_schema : dam_add_damobj_table failed on '%s'",(char*)table.queryName());
+                                dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
+                                return DAM_FAILURE;
+                            }
                         }
                     }
                 }
