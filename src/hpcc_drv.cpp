@@ -1296,7 +1296,7 @@ int     OAIP_schema(DAM_HDBC dam_hdbc,
                 if (!pQuery)
                 {
                     StringBuffer err;
-                    err.setf("HPCC_Conn:OAIP_schema : Query '%s.%s' not found",sbQS.str(), sbQN.str());
+                    err.setf("HPCC_Conn:OAIP_schema : Query '%s'.'%s' not found",sbQS.str(), sbQN.str());
                     dam_addError(dam_hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
                     return DAM_FAILURE;
                 }
