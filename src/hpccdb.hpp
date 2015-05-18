@@ -227,19 +227,22 @@ public:
     //An SQL stored procedure is loosly the same as an HPCC deployed query
     CMyQuerySetQuery * queryStoredProcedure(const char * querySetName, const char * name)
     {
-        if (!m_bGotDeployedQueries)
-            getDeployedQueries();//populate cache
-
-        ForEachItemIn(Idx, m_arrQuerySets)//thor,hthor,roxie
+        if ( querySetName && *querySetName && name && *name)
         {
-            CMyQuerySet &qrySet = (CMyQuerySet&)m_arrQuerySets.item(Idx);
-            if (0 == strcmp(qrySet.queryName(), querySetName))
+            if (!m_bGotDeployedQueries)
+                getDeployedQueries();//populate cache
+
+            ForEachItemIn(Idx, m_arrQuerySets)//thor,hthor,roxie
             {
-                CMyQuerySetQuery * pQuery = (CMyQuerySetQuery*)qrySet.queryQuery(name);
-                if (pQuery)
-                    return pQuery;
-                else
-                    break;
+                CMyQuerySet &qrySet = (CMyQuerySet&)m_arrQuerySets.item(Idx);
+                if (0 == strcmp(qrySet.queryName(), querySetName))
+                {
+                    CMyQuerySetQuery * pQuery = (CMyQuerySetQuery*)qrySet.queryQuery(name);
+                    if (pQuery)
+                        return pQuery;
+                    else
+                        break;
+                }
             }
         }
         return NULL;
