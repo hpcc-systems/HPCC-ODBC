@@ -726,10 +726,10 @@ void populateOAtypes(CColumn * pColumn)
         int idx = 0;
         while (*(p + idx) && !isdigit((int)*(p + idx)))//search for optional precision
             idx++;
-        pColumn->m_char_max_length = 8;//num bytes
+        unsigned long maxLen = sizeof(__int64);//default num bytes
         if (*(p + idx) && isdigit((int)*(p + idx)))
-            pColumn->m_char_max_length = atoi(p + idx);
-        switch (pColumn->m_char_max_length)
+            maxLen = atoi(p + idx);
+        switch (maxLen)
         {
         case 1:
 /*
@@ -759,6 +759,7 @@ void populateOAtypes(CColumn * pColumn)
             pColumn->m_type_name.set("BIGINT");
             pColumn->m_iXOType = XO_TYPE_BIGINT;
             pColumn->m_numeric_precision = 19;
+            pColumn->m_char_max_length = sizeof(__int64);
             break;
         }
     }
