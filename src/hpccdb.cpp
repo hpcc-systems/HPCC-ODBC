@@ -563,11 +563,15 @@ const char * HPCCdb::xformSQL(const char * pSQL, StringBuffer & xformedSQL)
     bool bTransformed = false;
     xformedSQL.set(pSQL);
 
+
     {
         //Replace "TOP xxx" with "LIMIT xxx"
-        char * pTop = strstr((char*)xformedSQL.str(), " TOP ");
-        if (pTop)
+        StringBuffer sb(xformedSQL);
+        sb.toUpperCase();
+        char * pp = strstr((char*)sb.str(), " TOP ");
+        if (pp)
         {
+            char * pTop = (char*)xformedSQL.str() + ((unsigned)pp - (unsigned)sb.str());
             char * p = pTop + 5;//move to next token
             while (isspace(*p))
                 ++p;
@@ -583,6 +587,8 @@ const char * HPCCdb::xformSQL(const char * pSQL, StringBuffer & xformedSQL)
                 xformedSQL.remove(start, len);
 
                 //Add "LIMIT xxx"
+                if (xformedSQL.charAt(xformedSQL.length()-1) == ';')//strip off trailing ;
+                    xformedSQL.setLength(xformedSQL.length()-1);
                 xformedSQL.appendf(" LIMIT %ld",lValue);
                 bTransformed = true;
             }
@@ -591,14 +597,20 @@ const char * HPCCdb::xformSQL(const char * pSQL, StringBuffer & xformedSQL)
 
     {
         //Replace "SELECT  FROM" with "SELECT * FROM"
-        char * pSelect = strstr((char*)xformedSQL.str(), "SELECT ");
-        if (pSelect)
+        StringBuffer sb(xformedSQL);
+        sb.toUpperCase();
+        char * pp = strstr((char*)sb.str(), "SELECT ");
+        if (pp)
         {
+            char * pSelect = (char*)xformedSQL.str() + ((unsigned)pp - (unsigned)sb.str());
             const char * p = pSelect + 6;//move past current token
             while (isspace(*p))
                 ++p;
             if (0 == strnicmp(p, "FROM ", 5))
+            {
                 xformedSQL.insert(p - xformedSQL.str() - 1, "*");
+                bTransformed =  true;
+            }
         }
     }
 
