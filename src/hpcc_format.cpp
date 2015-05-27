@@ -107,7 +107,7 @@ int     ip_format_select_query(DAM_HQUERY hquery, char *pSqlBuffer, int *piWrite
     *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "SELECT ");
     if (iSetQuantifier == SQL_SELECT_DISTINCT)
         *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "DISTINCT ");
-#ifdef __DO_TOP
+#ifdef __SUPPORT_SQL_TOP
     if (iTopResRows != DAM_NOT_SET) {
         *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "TOP %d ", iTopResRows);
         if (bTopPercent)
@@ -145,7 +145,7 @@ int     ip_format_select_query(DAM_HQUERY hquery, char *pSqlBuffer, int *piWrite
         ip_format_order_list(hquery, hOrderValExpList, pSqlBuffer, piWriteOffset);
     }
 
-#ifndef __DO_TOP
+#ifndef __SUPPORT_SQL_TOP
     if (iTopResRows != DAM_NOT_SET) {
         *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "LIMIT %d ", iTopResRows);
         if (bTopPercent)
