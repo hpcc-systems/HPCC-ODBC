@@ -107,11 +107,13 @@ int     ip_format_select_query(DAM_HQUERY hquery, char *pSqlBuffer, int *piWrite
     *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "SELECT ");
     if (iSetQuantifier == SQL_SELECT_DISTINCT)
         *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "DISTINCT ");
+#ifdef __DO_TOP
     if (iTopResRows != DAM_NOT_SET) {
         *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "TOP %d ", iTopResRows);
         if (bTopPercent)
             *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "PERCENT ");
     }
+#endif
     ip_format_valexp_list(hquery, hSelectValExpList, pSqlBuffer, piWriteOffset);
 
     *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, " FROM ");
@@ -142,6 +144,14 @@ int     ip_format_select_query(DAM_HQUERY hquery, char *pSqlBuffer, int *piWrite
         *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, " ORDER BY ");
         ip_format_order_list(hquery, hOrderValExpList, pSqlBuffer, piWriteOffset);
     }
+
+#ifndef __DO_TOP
+    if (iTopResRows != DAM_NOT_SET) {
+        *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "LIMIT %d ", iTopResRows);
+        if (bTopPercent)
+            *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "PERCENT ");
+    }
+#endif
     return DAM_SUCCESS;
 
 }
@@ -227,8 +237,11 @@ int     ip_format_valexp_list(DAM_HQUERY hquery, DAM_HVALEXP_LIST hValExpList, c
     DAM_HVALEXP     hValExp;
     int             iFirst = TRUE;
 
-    if (!hValExpList) return DAM_SUCCESS;
-
+    if (!hValExpList)
+    {
+        *piWriteOffset += sprintf(pSqlBuffer + *piWriteOffset, "*");
+        return DAM_SUCCESS;
+    }
     hValExp = damex_getFirstValExp(hValExpList);
     while (hValExp) {
         if (!iFirst)
