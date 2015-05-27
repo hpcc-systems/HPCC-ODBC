@@ -54,7 +54,8 @@ public:
         if (bExact)
         {
             CTable *tbl = m_tableCache.getValue(tblFilter);
-            _tables.append(*(LINK(tbl)));
+            if (tbl)
+                _tables.append(*(LINK(tbl)));
         }
         else
         {
@@ -554,6 +555,71 @@ bool HPCCdb::checkForErrors(const IMultiException & _exc, IConstECLWorkunit & _w
 }
 
 /************************************************************************
+Function:       HPCCdb::xformSQL
+Description:    Given an SQL string, modify it to comply with WsSQL requirements
+************************************************************************/
+const char * HPCCdb::xformSQL(const char * pSQL, StringBuffer & xformedSQL)
+{
+    bool bTransformed = false;
+    xformedSQL.set(pSQL);
+
+
+    {
+        //Replace "TOP xxx" with "LIMIT xxx"
+        StringBuffer sb(xformedSQL);
+        sb.toUpperCase();
+        char * pp = strstr((char*)sb.str(), " TOP ");
+        if (pp)
+        {
+            char * pTop = (char*)xformedSQL.str() + ((unsigned)pp - (unsigned)sb.str());
+            char * p = pTop + 5;//move to next token
+            while (isspace(*p))
+                ++p;
+            if (isdigit(*p))//if not a digit then something amiss
+            {
+                long lValue = atol(p);
+                while (isdigit(*p))
+                    ++p;
+
+                //Remove "TOP xxx"
+                unsigned start = pTop - xformedSQL.str() + 1;
+                unsigned len = p - pTop;
+                xformedSQL.remove(start, len);
+
+                //Add "LIMIT xxx"
+                if (xformedSQL.charAt(xformedSQL.length()-1) == ';')//strip off trailing ;
+                    xformedSQL.setLength(xformedSQL.length()-1);
+                xformedSQL.appendf(" LIMIT %ld",lValue);
+                bTransformed = true;
+            }
+        }
+    }
+
+    {
+        //Replace "SELECT  FROM" with "SELECT * FROM"
+        StringBuffer sb(xformedSQL);
+        sb.toUpperCase();
+        char * pp = strstr((char*)sb.str(), "SELECT ");
+        if (pp)
+        {
+            char * pSelect = (char*)xformedSQL.str() + ((unsigned)pp - (unsigned)sb.str());
+            const char * p = pSelect + 6;//move past current token
+            while (isspace(*p))
+                ++p;
+            if (0 == strnicmp(p, "FROM ", 5))
+            {
+                xformedSQL.insert(p - xformedSQL.str() - 1, "*");
+                bTransformed =  true;
+            }
+        }
+    }
+
+    if (bTransformed)
+        tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:Transformed SQL to '%s'\n", (xformedSQL.str()));
+    return xformedSQL.str();
+}
+
+/************************************************************************
 Function:       HPCCdb::executeSQL
 Description:    Call esp "ws_sql" service to execute the given SQL "SELECT" or "CALL" statement.
 Return:         true    on Success
@@ -564,24 +630,27 @@ bool HPCCdb::executeSQL(const char * sql, const char * targetQuerySet, StringBuf
     tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:call to HPCCdb::executeSQL with query '%s'\n", (sql));
     killResultsDatasets();
 
+    StringBuffer xformedSQL;
+    xformSQL(sql, xformedSQL);
     Owned<IClientExecuteSQLRequest> req;
     Owned<IClientExecuteSQLResponse> resp;
     req.setown( createClientExecuteSQLRequest());
-    req->setSqlText(sql);
+    req->setSqlText(xformedSQL.str());
     req->setSuppressXmlSchema(true);
     req->setResultWindowStart(0);
     if (m_maxFetchRowCount != -1)
         req->setResultWindowCount(m_maxFetchRowCount);
+    req->setSuppressXmlSchema(false);
 
     if (targetQuerySet && *targetQuerySet)
         req->setTargetQuerySet(targetQuerySet);
-    if (strnicmp(sql, "call", 4))
+    if (strnicmp(xformedSQL.str(), "call", 4))
         req->setTargetCluster(m_targetCluster);//not allowed on CALL
 
     CriticalBlock b(crit);
     try
     {
-        tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:calling ws_sql.ExecuteSQL('%s')...\n", (sql));
+        tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:calling ws_sql.ExecuteSQL('%s')...\n", (xformedSQL.str()));
         resp.setown(m_clientWs_sql->ExecuteSQL(req));//calls ws_sql
         tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:complete\n", ());
     }

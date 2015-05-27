@@ -45,6 +45,7 @@ public:
 
     //HPCC attributes, queried from wssql
     StringAttr      m_name;             // Column/dataElement name
+    StringAttr      m_alias;            // sumout1, etc
     StringAttr      m_hpccType;         // HPCC ECL types ("INTEGER", "REAL", "DECIMAL", "STRING", etc)
 
     //Open Access attributes, populated on demand
@@ -263,6 +264,7 @@ public:
     //ws_sql calls
     bool        getHPCCDBSystemInfo();
     bool        getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables);
+    const char *xformSQL(const char * pSQL, StringBuffer & xformedSQL);
     bool        executeSQL(const char * sql, const char * targetQuerySet, StringBuffer & sbErrors);
     bool        getMoreResults(const char * _wuid, const char * dsName, aindex_t _start, aindex_t _count, IPropertyTree ** _ppResultsTree, StringBuffer & _sbErrors);
     bool        executeStoredProcedure(const char * procName, const char * querySet);
