@@ -449,7 +449,6 @@ int             OAIP_execute(IP_HDBC hdbc,
     HPCC_CONN_DA *  pConnDA = (HPCC_CONN_DA *)hdbc;
     HPCC_STMT_DA *  pStmtDA;
     XM_Tree      *  pMemTree;
-    DAM_HCOL        hcol;
 
     tm_trace(hpcc_tm_Handle, UL_TM_F_TRACE, "HPCC_Conn:OAIP_execute() has been called\n", (0));
 
@@ -471,57 +470,8 @@ int             OAIP_execute(IP_HDBC hdbc,
     pStmtDA->dam_hstmt = hstmt;
     pStmtDA->iType = iStmtType;
 
-    /* get the table information */
-    IArrayOf<CTable> _tables;
+    // get the table name
     dam_describeTable(pStmtDA->dam_hstmt, NULL, NULL, pStmtDA->sTableName, NULL, (char*)NULL);
-    pConnDA->pHPCCdb->getTableSchema(pStmtDA->sTableName, _tables);
-    pConnDA->pHPCCdb->clearOutputColumnDescriptors();
-    if (_tables.empty())
-    {
-        StringBuffer err;
-        err.setf("HPCC_Conn:OAIP_execute : Table '%s' not found", pStmtDA->sTableName);
-        dam_addError(hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
-        return DAM_FAILURE;
-    }
-    assertex(!_tables.empty());
-    CTable &table = _tables.item(0);
-
-    //-----------------------------------------------------------
-    //The following calls retrieve the output table column format.
-    //Look up these columns in our hpcc CColumn cache, and save them
-    //in an ordered array of CColumn descriptors.  Once data is retrieved (below)
-    //we can iterate over these columns to add the columns to OpenAcces rows
-    //-----------------------------------------------------------
-    hcol = dam_getFirstCol(pStmtDA->dam_hstmt, DAM_COL_IN_USE);
-    while (hcol)
-    {
-        char    sColName[DAM_MAX_ID_LEN+1];
-        int     iColNum;
-        int     iXOType;
-        int     iColType;
-
-        dam_describeCol(hcol,       //DAM_HCOL  hcol,
-                        &iColNum,   //int *piColNum,
-                        sColName,   //char *pColName,
-                        &iXOType,   //int *piXOType,
-                        &iColType); //int *piColType);
-
-        CColumn *pCol = table.queryColumn(iColNum);//find this hpcc CColumn descriptor
-        if (!pCol)
-        {
-            StringBuffer err;
-            err.setf("HPCC_Conn:OAIP_execute : Table '%s', Column '%s' not found", table.queryName(), sColName);
-            dam_addError(hdbc, NULL, DAM_IP_ERROR, 0, (char*)err.str());
-            return DAM_FAILURE;
-        }
-
-        assert(0 == strcmp(sColName, pCol->m_name));
-//        pCol->m_iColNum     = iColNum;
-        assert(pCol->m_iXOType = iXOType);
-        pCol->m_hcol        = hcol;
-        pConnDA->pHPCCdb->addOutputColumnDescriptor(pCol);//save in ordered array of column descriptors
-        hcol = dam_getNextCol(pStmtDA->dam_hstmt);
-    }
 
     //-----------------------------------
     //Build the SQL SELECT query string

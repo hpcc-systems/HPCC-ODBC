@@ -27,7 +27,9 @@
 #include "common.esp"
 
 static TM_ModuleCB  driver_tm_Hdle;//for logging
-
+extern void populateOAtypes(CColumn * pColumn);
+extern bool queryColumnDetails(/*input*/void *pStmtDA, /*input*/aindex_t ColIdx,
+                            StringAttr &tblName, int * piColNum, int * piXOType, DAM_HCOL * phcol);
 
 //*******************************************************************
 //Shared schema cache singleton, persists even when connections close
@@ -560,10 +562,11 @@ Description:    Call esp "ws_sql" service to execute the given SQL "SELECT" or "
 Return:         true    on Success
                 false   unsuccessful
 ************************************************************************/
-bool HPCCdb::executeSQL(const char * sql, const char * targetQuerySet, StringBuffer & sbErrors)
+bool HPCCdb::executeSQL(const char * sql, const char * targetQuerySet, StringBuffer & sbErrors, void *pStmtDA)
 {
     tm_trace(driver_tm_Hdle, UL_TM_INFO, "HPCC_Conn:call to HPCCdb::executeSQL with query '%s'\n", (sql));
     killResultsDatasets();
+    clearOutputColumnDescriptors();
 
     Owned<IClientExecuteSQLRequest> req;
     Owned<IClientExecuteSQLResponse> resp;
@@ -618,7 +621,7 @@ bool HPCCdb::executeSQL(const char * sql, const char * targetQuerySet, StringBuf
 #endif
     Owned<IPropertyTree> resultsTree;
     {
-        Owned<IPTreeMaker> maker = createRootLessPTreeMaker();
+        Owned<IPTreeMaker> maker = createRootLessPTreeMaker(ipt_ordered);
         resultsTree.setown(createPTreeFromXMLString(resultXML, ipt_none, (PTreeReaderOptions)(ptr_noRoot | ptr_ignoreWhiteSpace), maker));
     }
 #ifdef _DEBUG
@@ -640,6 +643,112 @@ bool HPCCdb::executeSQL(const char * sql, const char * targetQuerySet, StringBuf
                 LINK(resultsDS);
                 m_ResultsDatasets.append(*resultsDS);
                 break;
+            }
+        }
+    }
+
+    //Iterate over the returned schema looking for column aliases (sumout1, etc)
+    StringBuffer sb;
+    Owned<IPropertyTreeIterator> it1;
+    it1.setown(resultsTree->getElements("XmlSchema"));
+    ForEach(*it1)
+    {
+        IPropertyTree & pt1 = it1->query();
+        Owned<IPropertyTreeIterator> it2;
+        it2.setown(pt1.getElements("xs:schema"));
+        ForEach(*it2)
+        {
+            IPropertyTree & pt2 = it2->query();
+            Owned<IPropertyTreeIterator> it3;
+            it3.setown(pt2.getElements("xs:element"));
+            ForEach(*it3)
+            {
+                IPropertyTree & pt3 = it3->query();
+                if (strieq(pt3.queryProp("@name"),"Dataset"))
+                {
+                    Owned<IPropertyTreeIterator> it4;
+                    it4.setown(pt3.getElements("xs:complexType"));
+                    ForEach(*it4)
+                    {
+                        IPropertyTree & pt4 = it4->query();
+                        Owned<IPropertyTreeIterator> it5;
+                        it5.setown(pt4.getElements("xs:sequence"));
+                        ForEach(*it5)
+                        {
+                            IPropertyTree & pt5 = it5->query();
+                            Owned<IPropertyTreeIterator> it6;
+                            it6.setown(pt5.getElements("xs:element"));
+                            ForEach(*it6)
+                            {
+                                IPropertyTree & pt6 = it6->query();
+                                if (strieq(pt6.queryProp("@name"),"Row"))
+                                {
+                                    Owned<IPropertyTreeIterator> it7;
+                                    it7.setown(pt6.getElements("xs:complexType"));
+                                    ForEach(*it7)
+                                    {
+                                        IPropertyTree & pt7 = it7->query();
+                                        Owned<IPropertyTreeIterator> it8;
+                                        it8.setown(pt7.getElements("xs:sequence"));
+                                        ForEach(*it8)
+                                        {
+                                            IPropertyTree & pt8 = it8->query();
+                                            Owned<IPropertyTreeIterator> it9;
+                                            aindex_t iColIdx = 0;
+                                            it9.setown(pt8.getElements("xs:element"));
+                                            ForEach(*it9)
+                                            {
+                                                IPropertyTree & pt9 = it9->query();
+                                                DUMPPTREE(&pt9);
+
+                                                //allocate and append new output CColumn
+                                                Owned<CColumn> outputColumn;
+                                                const char * pColName = pt9.queryProp("@name");
+                                                outputColumn.setown(new CColumn(pt9.queryProp(pColName)));
+                                                addOutputColumnDescriptor(LINK(outputColumn));
+
+                                                //Populate the output CColumn
+                                                outputColumn->m_alias.set(pColName);
+                                                int colNum;
+                                                StringAttr tblName;
+                                                DAM_HCOL hcol;
+
+                                                //Ask Progress to tell us about this output column
+                                                if (queryColumnDetails(pStmtDA, iColIdx, tblName, &colNum, (int*)&outputColumn->m_iXOType, &hcol))
+                                                {
+                                                    //Lets find this output column in the schema cache so we can reuse the populated data type contents
+                                                    IArrayOf<CTable> _tables;
+                                                    getTableSchema(tblName.str(), _tables);
+                                                    if (!_tables.empty())
+                                                    {
+                                                        CTable &table = _tables.item(0);
+                                                        CColumn * pCol = table.queryColumn(colNum);
+                                                        if (pCol)
+                                                        {
+                                                            outputColumn->copyFrom(pCol);
+                                                            outputColumn->m_hcol = hcol;
+                                                            outputColumn->m_alias.set(pColName);
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    //This must be a scalar like the result of a SUM(1) or COUNT(*) or something like that
+                                                    const char * pHPCCType = pt9.queryProp("@type");
+                                                    const char * pp = strchr(pHPCCType, ':');
+                                                    outputColumn->m_hpccType.set(pp ? pp + 1 : pHPCCType);
+                                                    outputColumn->m_iXOType = UNINITIALIZED;
+                                                }
+                                                populateOAtypes(outputColumn.get());//map HPCC data types to OpenAccess types
+                                                ++iColIdx;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
