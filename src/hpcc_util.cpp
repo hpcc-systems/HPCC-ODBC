@@ -29,6 +29,9 @@ int hpcc_add_row(HPCC_STMT_DA *pStmtDA, DAM_HROW hrow, IPropertyTree * pRow, CCo
     int64           i64Val;
     double          dVal;
 
+    if (pCol->m_hcol == (DAM_HCOL)UNINITIALIZED)//Progress column doesnt exist. This happens on COUNT(*) and similar, so lets ignore it for now
+        return DAM_SUCCESS;
+
     const char * value = pRow->queryProp(pCol->m_alias);//Alias takes precedence over name
     if (NULL == value)
         value = pRow->queryProp(pCol->m_name);

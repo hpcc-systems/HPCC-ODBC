@@ -738,6 +738,7 @@ bool HPCCdb::executeSQL(const char * sql, const char * targetQuerySet, StringBuf
                                                     const char * pp = strchr(pHPCCType, ':');
                                                     outputColumn->m_hpccType.set(pp ? pp + 1 : pHPCCType);
                                                     outputColumn->m_iXOType = UNINITIALIZED;
+                                                    outputColumn->m_hcol = (DAM_HCOL)UNINITIALIZED;
                                                 }
                                                 populateOAtypes(outputColumn.get());//map HPCC data types to OpenAccess types
                                                 ++iColIdx;
