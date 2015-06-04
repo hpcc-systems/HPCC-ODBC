@@ -55,5 +55,7 @@ typedef struct hpcc_statement_struct
 extern TM_ModuleCB     hpcc_tm_Handle; /* declared in hpcc_drv.c */
 
 int     hpcc_exec(const char * sqlQuery, const char * targetQuerySet, HPCC_STMT_DA *pStmtDA, int *piNumResRows);
+bool    queryColumnDetails(/*input*/void *pStmtDA, /*input*/aindex_t ColIdx,
+                            StringAttr &tblName, int * piColNum, int * piXOType, DAM_HCOL * phcol);
 
 #endif  /* __HPCCUTIL_HPP */

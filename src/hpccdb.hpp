@@ -43,6 +43,18 @@ public:
     CColumn(const char * _name) : m_name(_name), m_iXOType(UNINITIALIZED) {}
     virtual ~CColumn()  {}
 
+    void copyFrom(CColumn * pFrom)
+    {
+        m_name.set(pFrom->m_name);
+        m_alias.set(pFrom->m_alias);
+        m_hpccType.set(pFrom->m_hpccType);
+
+        m_iXOType = pFrom->m_iXOType;
+        m_type_name.set(pFrom->m_type_name);
+        m_char_max_length = pFrom->m_char_max_length;
+        m_numeric_precision = pFrom->m_numeric_precision;
+        m_hcol = pFrom->m_hcol;
+    }
     //HPCC attributes, queried from wssql
     StringAttr      m_name;             // Column/dataElement name
     StringAttr      m_alias;            // sumout1, etc
@@ -264,7 +276,7 @@ public:
     //ws_sql calls
     bool        getHPCCDBSystemInfo();
     bool        getTableSchema(const char * _tableFilter, IArrayOf<CTable> &_tables);
-    bool        executeSQL(const char * sql, const char * targetQuerySet, StringBuffer & sbErrors);
+    bool        executeSQL(const char * sql, const char * targetQuerySet, StringBuffer & sbErrors, void *pStmtDA);
     bool        getMoreResults(const char * _wuid, const char * dsName, aindex_t _start, aindex_t _count, IPropertyTree ** _ppResultsTree, StringBuffer & _sbErrors);
     bool        executeStoredProcedure(const char * procName, const char * querySet);
 

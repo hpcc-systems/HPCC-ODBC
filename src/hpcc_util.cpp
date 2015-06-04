@@ -29,7 +29,12 @@ int hpcc_add_row(HPCC_STMT_DA *pStmtDA, DAM_HROW hrow, IPropertyTree * pRow, CCo
     int64           i64Val;
     double          dVal;
 
-    const char * value = pRow->queryProp(pCol->m_name);//string representation of the row data
+    if (pCol->m_hcol == (DAM_HCOL)UNINITIALIZED)//Progress column doesnt exist. This happens on COUNT(*) and similar, so lets ignore it for now
+        return DAM_SUCCESS;
+
+    const char * value = pRow->queryProp(pCol->m_alias);//Alias takes precedence over name
+    if (NULL == value)
+        value = pRow->queryProp(pCol->m_name);
     if (NULL == value)
     {
         //No value provided. Inject empty string or "XO_NULL_DATA"
@@ -97,7 +102,7 @@ int             hpcc_exec(const char * sqlQuery, const char * targetQuerySet, HP
 
     //call ws_sql to get row(s)
     sbErrors.set("HPCC_Conn:hpcc_exec : ");
-    if (!pHPCCdb->executeSQL(sqlQuery, targetQuerySet, sbErrors))
+    if (!pHPCCdb->executeSQL(sqlQuery, targetQuerySet, sbErrors, pStmtDA))
     {
         dam_addError(pStmtDA->pConnDA->dam_hdbc, pStmtDA->dam_hstmt, DAM_IP_ERROR, 0, (char *)sbErrors.str());
         return DAM_FAILURE;
@@ -137,4 +142,32 @@ int             hpcc_exec(const char * sqlQuery, const char * targetQuerySet, HP
     }
     tm_trace(hpcc_tm_Handle, UL_TM_F_TRACE, "HPCC_Conn:Read '%ld' rows\n", (*piNumRows));
     return DAM_SUCCESS;
+}
+
+
+/************************************************************************
+Function:       queryColumnDetails
+Description:    Get the table name
+************************************************************************/
+bool queryColumnDetails(/*input*/void *pStmtDA, /*input*/aindex_t colIdx,
+                        StringAttr &tblName, int * piColNum, int * piXOType, DAM_HCOL * phcol)
+{
+    aindex_t idx = 0;
+    DAM_HCOL hcol = dam_getFirstCol(((HPCC_STMT_DA*)pStmtDA)->dam_hstmt, DAM_COL_IN_USE);
+    while (hcol && idx < colIdx)
+    {
+        hcol = dam_getNextCol(((HPCC_STMT_DA*)pStmtDA)->dam_hstmt);
+        ++idx;
+    }
+
+    if (hcol && idx == colIdx)
+    {
+        char sColName[DAM_MAX_ID_LEN+1];
+        int colType;
+        dam_describeCol(hcol, piColNum, sColName, piXOType, &colType);
+        tblName.set(((HPCC_STMT_DA*)pStmtDA)->sTableName);
+        *phcol = hcol;
+        return true;
+    }
+    return false;
 }
