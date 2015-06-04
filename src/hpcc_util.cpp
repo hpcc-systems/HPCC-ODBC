@@ -112,9 +112,7 @@ int             hpcc_exec(const char * sqlQuery, const char * targetQuerySet, HP
     bool bRowAvail = pHPCCdb->ReadFirstRow(&pRow);
     while (bRowAvail)
     {
-#ifdef _DEBUG
         DUMPPTREE(pRow);
-#endif
         hrow = dam_allocRow(pStmtDA->dam_hstmt);//allocate a new row
         aindex_t iNumColumns = pHPCCdb->queryOutputColumnDescriptorCount();
         for (aindex_t col = 0; col < iNumColumns; col++)//iterate over each column in this row

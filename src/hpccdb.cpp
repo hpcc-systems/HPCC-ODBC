@@ -616,17 +616,13 @@ bool HPCCdb::executeSQL(const char * sql, const char * targetQuerySet, StringBuf
     //-----------------
     const char * resultXML = resp->getResult();
 
-#ifdef _DEBUG
     DUMP(resultXML);
-#endif
     Owned<IPropertyTree> resultsTree;
     {
         Owned<IPTreeMaker> maker = createRootLessPTreeMaker(ipt_ordered);
         resultsTree.setown(createPTreeFromXMLString(resultXML, ipt_none, (PTreeReaderOptions)(ptr_noRoot | ptr_ignoreWhiteSpace), maker));
     }
-#ifdef _DEBUG
     DUMPPTREE(resultsTree);
-#endif
     Owned<IPropertyTreeIterator> datasetIterator;
     datasetIterator.setown(resultsTree->getElements("Dataset"));
     ForEach(*datasetIterator)
@@ -808,17 +804,13 @@ bool HPCCdb::getMoreResults(const char * _wuid, const char * _dsName, aindex_t _
     //-----------------
     const char * resultXML = resp->getResult();
 
-#ifdef _DEBUG
     DUMP(resultXML);
-#endif
     Owned<IPropertyTree> resultsTree;
     {
         Owned<IPTreeMaker> maker = createRootLessPTreeMaker();
         resultsTree.setown(createPTreeFromXMLString(resultXML, ipt_none, (PTreeReaderOptions)(ptr_noRoot | ptr_ignoreWhiteSpace), maker));
     }
-#ifdef _DEBUG
     DUMPPTREE(resultsTree);
-#endif
     Owned<IPropertyTreeIterator> datasetIterator;
     datasetIterator.setown(resultsTree->getElements("Dataset"));
     ForEach(*datasetIterator)

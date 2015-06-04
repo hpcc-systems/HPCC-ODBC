@@ -28,6 +28,9 @@
 #ifdef _DEBUG
     #define DUMPPTREE(pt)   {StringBuffer sb;toXML(pt,sb);OutputDebugString("\n");OutputDebugString(sb.str());OutputDebugString("\n");}
     #define DUMP(s)         {OutputDebugString("\n");OutputDebugString(s);OutputDebugString("\n");}
+#else
+    #define DUMPPTREE(pt)   {}
+    #define DUMP(s)         {}
 #endif
 
 //---------------------------------------------
