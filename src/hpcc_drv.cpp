@@ -487,9 +487,7 @@ int             OAIP_execute(IP_HDBC hdbc,
         if (DAM_SUCCESS == iRetCode && szSqlBuffer[0])
             sqlBuff.set(szSqlBuffer);
     }
-#ifdef _DEBUG
     DUMP(sqlBuff.get());
-#endif
 
     //-----------------------------------
     //execute the SELECT query
@@ -639,9 +637,7 @@ int             OAIP_procedure(IP_HDBC hdbc, DAM_HSTMT hstmt, int iType, int *pi
     }
     if (iNumInputs)
         sqlBuff.append(");");
-#ifdef _DEBUG
     DUMP(sqlBuff.str());
-#endif
 
     //----------------------------------------------------------
     //Call HPCC to execute the stored procedure (Deployed Query)
